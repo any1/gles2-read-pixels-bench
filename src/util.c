@@ -68,6 +68,8 @@ const char *method_name(enum capture_method m)
 		return "per-row";
 	case CAPTURE_DIRECT:
 		return "direct";
+	case CAPTURE_PBO:
+		return "pbo";
 	default:
 		return "unknown";
 	}
@@ -89,6 +91,10 @@ const char *method_description(enum capture_method m)
 		return "one glReadPixels of the crop straight into a full "
 		       "frame sized destination buffer, no staging buffer, "
 		       "using GL_NV_pack_subimage";
+	case CAPTURE_PBO:
+		return "glReadPixels of the crop into a pixel pack buffer, "
+		       "then glMapBufferRangeEXT and a memcpy out of the "
+		       "mapping, using GL_NV_pixel_buffer_object";
 	default:
 		return "unknown";
 	}

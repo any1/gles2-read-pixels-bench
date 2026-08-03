@@ -79,6 +79,34 @@ static void direct_init(struct capture *c)
 	gl_check("pack subimage state");
 }
 
+/*
+ * The readback lands in a pixel pack buffer owned by the GL, which is then
+ * mapped and copied out.  GL_OES_mapbuffer on its own only offers write-only
+ * mappings, so reading the result back needs glMapBufferRangeEXT.
+ */
+static void pbo_init(struct capture *c)
+{
+	if (!epoxy_has_gl_extension("GL_NV_pixel_buffer_object"))
+		die("the pbo method needs GL_NV_pixel_buffer_object");
+	if (!epoxy_has_gl_extension("GL_EXT_map_buffer_range"))
+		die("the pbo method needs GL_EXT_map_buffer_range to map for reading");
+	if (!epoxy_has_gl_extension("GL_OES_mapbuffer"))
+		die("the pbo method needs GL_OES_mapbuffer for glUnmapBufferOES");
+
+	glGenBuffers(1, &c->pbo);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, c->pbo);
+
+	/*
+	 * ES 2.0 has only the *_DRAW usage hints and NV_pixel_buffer_object
+	 * adds none, so DYNAMIC_DRAW is the closest legal description of a
+	 * buffer rewritten every frame.  STREAM_READ is an ES 3.0 token.
+	 */
+	glBufferData(GL_PIXEL_PACK_BUFFER_NV, (GLsizeiptr)c->frame_bytes, NULL,
+		     GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
+	gl_check("pixel pack buffer creation");
+}
+
 void capture_init(struct capture *c, enum capture_method m,
 		  const struct options *o, const struct renderer *r)
 {
@@ -115,6 +143,9 @@ void capture_init(struct capture *c, enum capture_method m,
 	case CAPTURE_DIRECT:
 		direct_init(c);
 		break;
+	case CAPTURE_PBO:
+		pbo_init(c);
+		break;
 	default:
 		die("unknown capture method");
 	}
@@ -138,6 +169,7 @@ void capture_init(struct capture *c, enum capture_method m,
  */
 void capture_frame(struct capture *c)
 {
+	void *map;
 	int row;
 
 	switch (c->method) {
@@ -187,6 +219,29 @@ void capture_frame(struct capture *c)
 			     GL_UNSIGNED_BYTE, c->dst);
 		break;
 
+	case CAPTURE_PBO:
+		/*
+		 * With a pixel pack buffer bound the last glReadPixels
+		 * argument is an offset into that buffer rather than a
+		 * client pointer.
+		 */
+		glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, c->pbo);
+		glReadPixels(c->x, c->y, c->w, c->h, GL_RGBA,
+			     GL_UNSIGNED_BYTE, NULL);
+
+		map = glMapBufferRangeEXT(GL_PIXEL_PACK_BUFFER_NV, 0,
+					  (GLsizeiptr)c->frame_bytes,
+					  GL_MAP_READ_BIT_EXT);
+		if (!map)
+			die("glMapBufferRangeEXT of the pixel pack buffer failed");
+
+		memcpy(c->dst, map, c->frame_bytes);
+
+		if (!glUnmapBufferOES(GL_PIXEL_PACK_BUFFER_NV))
+			die("the pixel pack buffer contents were lost while mapped");
+		glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
+		break;
+
 	default:
 		die("unknown capture method");
 	}
@@ -207,6 +262,8 @@ void capture_fini(struct capture *c)
 		glDeleteFramebuffers(1, &c->stage_fbo);
 	if (c->stage_tex)
 		glDeleteTextures(1, &c->stage_tex);
+	if (c->pbo)
+		glDeleteBuffers(1, &c->pbo);
 	free(c->staging);
 	free(c->dst);
 	memset(c, 0, sizeof(*c));

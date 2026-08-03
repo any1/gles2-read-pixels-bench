@@ -21,6 +21,7 @@ enum capture_method {
 	CAPTURE_CPU_STAGING,
 	CAPTURE_PER_ROW,
 	CAPTURE_DIRECT,
+	CAPTURE_PBO,
 	CAPTURE_METHOD_COUNT
 };
 
@@ -85,6 +86,7 @@ struct capture {
 	GLuint src_fbo;		/* framebuffer the frame was rendered into */
 	GLuint stage_tex;	/* GPU staging target */
 	GLuint stage_fbo;
+	GLuint pbo;		/* pixel pack buffer, mapped to read back */
 	unsigned char *dst;	/* malloc'd destination, the thing we time */
 	unsigned char *staging;	/* full frame CPU staging buffer */
 	size_t dst_size;
