@@ -9,15 +9,18 @@
 #include <epoxy/gl.h>
 
 /*
- * The three ways of getting a cropped region of the rendered frame into a
- * buffer allocated with malloc().  Everything here stays within OpenGL ES
- * 2.0 core, so no pixel pack buffers, no buffer mapping and no packing
- * skip/row-length state.
+ * The ways of getting a cropped region of the rendered frame into a buffer
+ * allocated with malloc().  The first three stay within OpenGL ES 2.0 core,
+ * which offers no pixel pack buffers, no buffer mapping and no packing
+ * skip/row-length state.  CAPTURE_DIRECT needs GL_NV_pack_subimage, because
+ * ES 2.0 core PixelStore only has PACK_ALIGNMENT and so cannot describe a
+ * destination row stride wider than the region being read.
  */
 enum capture_method {
 	CAPTURE_GPU_STAGING,
 	CAPTURE_CPU_STAGING,
 	CAPTURE_PER_ROW,
+	CAPTURE_DIRECT,
 	CAPTURE_METHOD_COUNT
 };
 
@@ -84,8 +87,18 @@ struct capture {
 	GLuint stage_fbo;
 	unsigned char *dst;	/* malloc'd destination, the thing we time */
 	unsigned char *staging;	/* full frame CPU staging buffer */
+	size_t dst_size;
 	size_t row_bytes;	/* bytes per cropped row */
 	size_t frame_bytes;	/* bytes per cropped frame */
+
+	/*
+	 * Where the crop ends up inside dst.  Tightly packed at the start of
+	 * the buffer for every method but CAPTURE_DIRECT, which lands it at
+	 * its natural position in a full frame worth of pixels.
+	 */
+	unsigned char *crop;
+	size_t crop_pitch;
+
 	uint64_t completed;
 };
 
@@ -99,7 +112,7 @@ uint64_t capture_get_checksum(void);
 struct mjpeg;
 
 struct mjpeg *mjpeg_open(const char *path, int width, int height, int quality);
-void mjpeg_write(struct mjpeg *m, const unsigned char *rgba);
+void mjpeg_write(struct mjpeg *m, const unsigned char *rgba, size_t pitch);
 void mjpeg_close(struct mjpeg *m);
 
 #endif /* BENCH_H */

@@ -58,11 +58,11 @@ struct mjpeg *mjpeg_open(const char *path, int width, int height, int quality)
 	return m;
 }
 
-void mjpeg_write(struct mjpeg *m, const unsigned char *rgba)
+void mjpeg_write(struct mjpeg *m, const unsigned char *rgba, size_t pitch)
 {
 	size_t size = m->jpeg_capacity;
 
-	if (tj3Compress8(m->tj, rgba, m->width, m->width * 4, m->height,
+	if (tj3Compress8(m->tj, rgba, m->width, (int)pitch, m->height,
 			 TJPF_RGBA, &m->jpeg, &size) < 0)
 		die("tj3Compress8 failed: %s", tj3GetErrorStr(m->tj));
 

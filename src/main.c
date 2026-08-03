@@ -46,7 +46,7 @@ static void usage(FILE *f, const char *argv0)
 "      --crop-x PX       crop left edge, top-left origin (default centred)\n"
 "      --crop-y PX       crop top edge, top-left origin (default centred)\n"
 "  -m, --method NAME     run only this method, may be repeated; one of\n"
-"                        gpu-staging, cpu-staging, per-row, all\n"
+"                        gpu-staging, cpu-staging, per-row, direct, all\n"
 "  -w, --warmup N        warmup frames per method (default 10)\n"
 "  -e, --encode          also encode captured frames to mjpeg, for\n"
 "                        verification only; this costs frames\n"
@@ -250,7 +250,7 @@ static void run_method(struct renderer *r, enum capture_method m,
 		capture_frame(&cap);
 
 		if (mj)
-			mjpeg_write(mj, cap.dst);
+			mjpeg_write(mj, cap.crop, cap.crop_pitch);
 	}
 
 	res->elapsed = now_s() - t0;

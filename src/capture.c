@@ -5,20 +5,19 @@
 
 /*
  * Reading the destination buffer through a volatile accumulator keeps the
- * compiler from deciding that the copy into it is dead.  Sampling one byte per
- * 4 KiB page is enough: memcpy() is a library call, so it is eliminated whole
- * or not at all, and this costs a few hundred loads per frame.
+ * compiler from deciding that the copy into it is dead.  One byte per row is
+ * enough to observe every memcpy() of the row loop, and memcpy() is a library
+ * call, so it is eliminated whole or not at all.
  */
 static volatile uint64_t capture_checksum;
 
 static void capture_touch(const struct capture *c)
 {
 	uint64_t sum = 0;
-	size_t i;
+	int row;
 
-	for (i = 0; i < c->frame_bytes; i += 4096)
-		sum += c->dst[i];
-	sum += c->dst[c->frame_bytes - 1];
+	for (row = 0; row < c->h; row++)
+		sum += c->crop[(size_t)row * c->crop_pitch];
 
 	capture_checksum += sum;
 }
@@ -60,6 +59,26 @@ static void gpu_staging_init(struct capture *c)
 	glBindFramebuffer(GL_FRAMEBUFFER, c->src_fbo);
 }
 
+/*
+ * No staging buffer of any kind: the crop is read straight into the position
+ * it occupies in a full frame worth of pixels.  That needs a destination row
+ * stride wider than the region being read, which ES 2.0 core cannot express,
+ * hence GL_NV_pack_subimage.
+ */
+static void direct_init(struct capture *c)
+{
+	if (!epoxy_has_gl_extension("GL_NV_pack_subimage"))
+		die("the direct method needs GL_NV_pack_subimage");
+
+	c->dst_size = (size_t)c->fb_width * c->fb_height * 4;
+	c->crop_pitch = (size_t)c->fb_width * 4;
+
+	glPixelStorei(GL_PACK_ROW_LENGTH, c->fb_width);
+	glPixelStorei(GL_PACK_SKIP_PIXELS, c->x);
+	glPixelStorei(GL_PACK_SKIP_ROWS, c->y);
+	gl_check("pack subimage state");
+}
+
 void capture_init(struct capture *c, enum capture_method m,
 		  const struct options *o, const struct renderer *r)
 {
@@ -81,21 +100,34 @@ void capture_init(struct capture *c, enum capture_method m,
 	c->src_fbo = r->fbo;
 	c->row_bytes = (size_t)c->w * 4;
 	c->frame_bytes = c->row_bytes * (size_t)c->h;
-	c->dst = xmalloc(c->frame_bytes);
-	memset(c->dst, 0, c->frame_bytes);
+
+	/* the crop is tightly packed unless a method says otherwise */
+	c->dst_size = c->frame_bytes;
+	c->crop_pitch = c->row_bytes;
 
 	switch (m) {
 	case CAPTURE_GPU_STAGING:
-		gpu_staging_init(c);
+	case CAPTURE_PER_ROW:
 		break;
 	case CAPTURE_CPU_STAGING:
 		c->staging = xmalloc((size_t)c->fb_width * c->fb_height * 4);
 		break;
-	case CAPTURE_PER_ROW:
+	case CAPTURE_DIRECT:
+		direct_init(c);
 		break;
 	default:
 		die("unknown capture method");
 	}
+
+	c->dst = xmalloc(c->dst_size);
+	memset(c->dst, 0, c->dst_size);
+
+	c->crop = c->dst;
+	if (m == CAPTURE_DIRECT)
+		c->crop += (size_t)c->y * c->crop_pitch + (size_t)c->x * 4;
+
+	if (m == CAPTURE_GPU_STAGING)
+		gpu_staging_init(c);
 }
 
 /*
@@ -146,6 +178,15 @@ void capture_frame(struct capture *c)
 				     c->dst + (size_t)row * c->row_bytes);
 		break;
 
+	case CAPTURE_DIRECT:
+		/*
+		 * The pack state set up at init places the crop, so the
+		 * destination pointer stays at the start of the buffer.
+		 */
+		glReadPixels(c->x, c->y, c->w, c->h, GL_RGBA,
+			     GL_UNSIGNED_BYTE, c->dst);
+		break;
+
 	default:
 		die("unknown capture method");
 	}
@@ -156,6 +197,12 @@ void capture_frame(struct capture *c)
 
 void capture_fini(struct capture *c)
 {
+	if (c->method == CAPTURE_DIRECT) {
+		glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+		glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+		glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+	}
+
 	if (c->stage_fbo)
 		glDeleteFramebuffers(1, &c->stage_fbo);
 	if (c->stage_tex)

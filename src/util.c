@@ -66,6 +66,8 @@ const char *method_name(enum capture_method m)
 		return "cpu-staging";
 	case CAPTURE_PER_ROW:
 		return "per-row";
+	case CAPTURE_DIRECT:
+		return "direct";
 	default:
 		return "unknown";
 	}
@@ -83,6 +85,10 @@ const char *method_description(enum capture_method m)
 	case CAPTURE_PER_ROW:
 		return "one glReadPixels per row of the crop, straight into "
 		       "the destination buffer";
+	case CAPTURE_DIRECT:
+		return "one glReadPixels of the crop straight into a full "
+		       "frame sized destination buffer, no staging buffer, "
+		       "using GL_NV_pack_subimage";
 	default:
 		return "unknown";
 	}
