@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 #
 # Turn the benchmark's json into a self-contained html report: a bar chart
-# of the fps figures, followed by a code snippet for every test that ran.
+# of the fps figures, with the CPU and GPU load and fps per load below each,
+# followed by a code snippet for every test that ran.
 #
 #   ./build/gles2-read-pixels-bench | scripts/html-report.py -o report.html
 #
@@ -187,25 +188,72 @@ def test_id(name):
     return 'test-' + re.sub(r'[^a-z0-9-]', '-', name.lower())
 
 
+def load_pct(r, key):
+    load = r.get(key)
+    if isinstance(load, dict) and 'load_pct' in load:
+        return float(load['load_pct'])
+    return None
+
+
+def efficiency(r):
+    cpu = load_pct(r, 'cpu')
+    gpu = load_pct(r, 'gpu')
+    if cpu is None or gpu is None or cpu + gpu <= 0:
+        return None
+    return float(r.get('fps', 0.0)) / (cpu + gpu)
+
+
+def bar_row(cls, label, value, vmax, text, tip):
+    pct = 100.0 * min(value, vmax) / vmax
+    return f'''\
+  <span class="row {cls}">
+    <span class="label">{html.escape(label)}</span>
+    <span class="track">
+      <span class="bar" style="width: {pct:.3f}%"></span>
+      <span class="value">{html.escape(text)}</span>
+      <span class="tip">{html.escape(tip)}</span>
+    </span>
+  </span>'''
+
+
 def render_chart(results):
-    vmax = max((float(r.get('fps', 0)) for r in results), default=0) or 1.0
-    rows = []
+    fps_max = max((float(r.get('fps', 0)) for r in results),
+                  default=0) or 1.0
+    eff_max = max((e for e in map(efficiency, results) if e is not None),
+                  default=0) or 1.0
+
+    groups = []
     for r in results:
         name = r.get('test', '?')
         fps = float(r.get('fps', 0))
-        pct = 100.0 * fps / vmax
-        tip = (f"{r.get('frames', '?')} frames / "
-               f"{float(r.get('elapsed_s', 0)):.3f} s")
-        rows.append(f'''\
-<a class="row" href="#{test_id(name)}">
-  <span class="label">{html.escape(name)}</span>
-  <span class="track">
-    <span class="bar" style="width: {pct:.3f}%"></span>
-    <span class="value">{fps:,.1f}</span>
-    <span class="tip">{html.escape(tip)}</span>
-  </span>
-</a>''')
-    return '\n'.join(rows)
+        rows = [bar_row('fps', name, fps, fps_max, f'{fps:,.1f}',
+                        f"{r.get('frames', '?')} frames / "
+                        f"{float(r.get('elapsed_s', 0)):.3f} s")]
+
+        cpu = load_pct(r, 'cpu')
+        if cpu is not None:
+            rows.append(bar_row('cpu', 'CPU', cpu, 100.0, f'{cpu:.1f}%',
+                                f"{float(r['cpu'].get('time_s', 0)):.3f} s "
+                                f"CPU time, {r['cpu'].get('cpus', '?')} CPUs"))
+
+        gpu = load_pct(r, 'gpu')
+        if gpu is not None:
+            engines = r['gpu'].get('engines', {})
+            rows.append(bar_row('gpu', 'GPU', gpu, 100.0, f'{gpu:.1f}%',
+                                ' · '.join(f'{k} {float(v):.1f}%'
+                                           for k, v in engines.items())))
+
+        eff = efficiency(r)
+        if eff is not None:
+            rows.append(bar_row('eff', 'fps / load', eff, eff_max,
+                                f'{eff:.2f} fps/%',
+                                f'{fps:,.1f} fps / '
+                                f'({cpu:.1f}% + {gpu:.1f}%)'))
+
+        cls = 'group load' if len(rows) > 1 else 'group'
+        groups.append(f'<a class="{cls}" href="#{test_id(name)}">\n'
+                      + '\n'.join(rows) + '\n</a>')
+    return '\n'.join(groups)
 
 
 def render_snippets(results):
@@ -238,6 +286,9 @@ CSS = '''\
   --text-3: #7b7a74;
   --bar: #2a78d6;
   --bar-hover: #1d5fae;
+  --cpu: #eb6834;
+  --gpu: #1baf7a;
+  --eff: #eda100;
   --syn-comment: #7b7a74;
   --syn-string: #0f7a52;
   --syn-const: #a24a12;
@@ -257,6 +308,9 @@ CSS = '''\
     --text-3: #8f8e86;
     --bar: #3987e5;
     --bar-hover: #6aa6ee;
+    --cpu: #d95926;
+    --gpu: #199e70;
+    --eff: #c98500;
     --syn-comment: #8f8e86;
     --syn-string: #5cc79c;
     --syn-const: #f0a46b;
@@ -287,16 +341,17 @@ dl.meta dd { margin: 0; }
   display: grid; grid-template-columns: max-content 1fr;
   column-gap: 12px; margin-bottom: 48px;
 }
-.row {
+.group, .row {
   display: grid; grid-template-columns: subgrid; grid-column: 1 / -1;
-  align-items: center; min-height: 34px;
-  color: inherit; text-decoration: none;
+  align-items: center; color: inherit; text-decoration: none;
 }
+.group.load + .group .row.fps .track { height: 46px; padding-top: 12px; }
+.group.load + .group .row.fps .label { padding-top: 12px; }
 .label { text-align: right; font-size: 14px; color: var(--text); }
 .track {
   position: relative; display: flex; align-items: center;
   height: 34px; border-left: 1px solid var(--border);
-  padding-right: 72px;
+  padding-right: 80px;
 }
 .bar {
   display: block; height: 22px; background: var(--bar);
@@ -307,6 +362,13 @@ dl.meta dd { margin: 0; }
   margin-left: 8px; font-size: 13px; color: var(--text-2);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
+.row:not(.fps) .label { font-size: 11px; color: var(--text-2); }
+.row:not(.fps) .track { height: 16px; }
+.row:not(.fps) .bar { height: 6px; border-radius: 0 3px 3px 0; }
+.row:not(.fps) .value { font-size: 11px; }
+.row.cpu .bar { background: var(--cpu); }
+.row.gpu .bar { background: var(--gpu); }
+.row.eff .bar { background: var(--eff); }
 .tip {
   position: absolute; left: 8px; top: -26px; z-index: 1;
   padding: 2px 8px; border-radius: 4px; font-size: 12px;
@@ -314,8 +376,10 @@ dl.meta dd { margin: 0; }
   white-space: nowrap; pointer-events: none; opacity: 0;
   transition: opacity 0.1s;
 }
-.row:hover .bar, .row:focus-visible .bar { background: var(--bar-hover); }
-.row:hover .tip, .row:focus-visible .tip { opacity: 1; }
+.group:hover .row.fps .bar, .group:focus-visible .row.fps .bar {
+  background: var(--bar-hover);
+}
+.row:hover .tip, .group:focus-visible .row.fps .tip { opacity: 1; }
 .snippets {
   display: grid; gap: 32px 24px;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr));
@@ -351,7 +415,7 @@ pre {
 @media (max-width: 560px) {
   .chart { column-gap: 8px; }
   .label { font-size: 12px; }
-  .track { padding-right: 56px; }
+  .track { padding-right: 72px; }
 }
 '''
 
