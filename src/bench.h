@@ -25,6 +25,19 @@ enum capture_method {
 	CAPTURE_METHOD_COUNT
 };
 
+/*
+ * One combination the benchmark runs: a capture method, and whether its
+ * staging buffer is pre-allocated or built and torn down around every single
+ * capture.  Methods that stage nothing have only the one variant.
+ */
+struct test {
+	enum capture_method method;
+	bool realloc_staging;
+};
+
+#define TEST_MAX (CAPTURE_METHOD_COUNT * 2)
+#define TEST_NAME_MAX 64
+
 struct options {
 	int width;
 	int height;
@@ -37,7 +50,7 @@ struct options {
 	int quality;		/* jpeg quality */
 	bool encode;
 	const char *outdir;
-	unsigned method_mask;
+	unsigned test_mask;
 };
 
 /* util.c */
@@ -47,6 +60,8 @@ double now_s(void);
 void gl_check(const char *what);
 const char *method_name(enum capture_method m);
 const char *method_description(enum capture_method m);
+int test_list(struct test *tests);
+void test_name(const struct test *t, char *buf, size_t size);
 void *xmalloc(size_t size);
 
 /* gl_context.c */
@@ -101,10 +116,14 @@ struct capture {
 	unsigned char *crop;
 	size_t crop_pitch;
 
+	bool realloc_staging;	/* staging lives for one capture only */
+	bool staging_checked;	/* staging has been validated once already */
+
 	uint64_t completed;
 };
 
-void capture_init(struct capture *c, enum capture_method m,
+bool method_has_staging(enum capture_method m);
+void capture_init(struct capture *c, const struct test *t,
 		  const struct options *o, const struct renderer *r);
 void capture_frame(struct capture *c);
 void capture_fini(struct capture *c);

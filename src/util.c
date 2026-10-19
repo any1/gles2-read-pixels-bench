@@ -99,3 +99,35 @@ const char *method_description(enum capture_method m)
 		return "unknown";
 	}
 }
+
+/*
+ * Every combination the benchmark runs: each method with its staging buffer
+ * pre-allocated, and, for the methods that stage anything at all, once more
+ * with the staging buffer allocated and freed around every capture.
+ */
+int test_list(struct test *tests)
+{
+	int i;
+	int n = 0;
+
+	for (i = 0; i < CAPTURE_METHOD_COUNT; i++) {
+		tests[n].method = i;
+		tests[n].realloc_staging = false;
+		n++;
+
+		if (!method_has_staging(i))
+			continue;
+
+		tests[n].method = i;
+		tests[n].realloc_staging = true;
+		n++;
+	}
+
+	return n;
+}
+
+void test_name(const struct test *t, char *buf, size_t size)
+{
+	snprintf(buf, size, "%s%s", method_name(t->method),
+		 t->realloc_staging ? "-realloc" : "");
+}

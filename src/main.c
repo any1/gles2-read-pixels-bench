@@ -10,7 +10,7 @@
 #define CROP_CENTRED (-1)
 
 struct result {
-	enum capture_method method;
+	struct test test;
 	uint64_t frames;
 	double elapsed;
 	char output[512];
@@ -31,6 +31,8 @@ static void add_double(json_object *obj, const char *key, double v, int prec)
 
 static void usage(FILE *f, const char *argv0)
 {
+	int i;
+
 	fprintf(f,
 "usage: %s [options]\n"
 "\n"
@@ -38,38 +40,59 @@ static void usage(FILE *f, const char *argv0)
 "a malloc'd buffer, using only OpenGL ES 2.0 core functionality.  Results go\n"
 "to stdout as json, everything else to stderr.\n"
 "\n"
-"  -d, --duration SEC    measurement duration per method (default 1.0)\n"
+"  -d, --duration SEC    measurement duration per test (default 1.0)\n"
 "  -W, --width PX        frame width (default 1920)\n"
 "  -H, --height PX       frame height (default 1080)\n"
 "      --crop-width PX   cropped region width (default 1280)\n"
 "      --crop-height PX  cropped region height (default 720)\n"
 "      --crop-x PX       crop left edge, top-left origin (default centred)\n"
 "      --crop-y PX       crop top edge, top-left origin (default centred)\n"
-"  -m, --method NAME     run only this method, may be repeated; one of\n"
-"                        gpu-staging, cpu-staging, per-row, direct, pbo,\n"
-"                        all\n"
-"  -w, --warmup N        warmup frames per method (default 10)\n"
+"  -m, --method NAME     run only this test, may be repeated, 'all' or one\n"
+"                        of the names below; the -realloc suffix allocates\n"
+"                        and frees the staging buffer around every capture\n"
+"                        instead of reusing a pre-allocated one, and a bare\n"
+"                        method name runs both variants\n"
+"  -w, --warmup N        warmup frames per test (default 10)\n"
 "  -e, --encode          also encode captured frames to mjpeg, for\n"
 "                        verification only; this costs frames\n"
 "  -q, --quality N       jpeg quality, 1 to 100 (default 85)\n"
 "  -o, --output-dir DIR  where to write mjpeg files (default .)\n"
-"  -h, --help            show this help\n",
+"  -h, --help            show this help\n"
+"\n"
+"tests:\n",
 		argv0);
+
+	for (i = 0; i < CAPTURE_METHOD_COUNT; i++)
+		fprintf(f, "  %s%s\n", method_name(i),
+			method_has_staging(i) ? "[-realloc]" : "");
 }
 
-static unsigned method_bit_from_name(const char *name)
+/*
+ * A full test name selects that one test, a bare method name selects every
+ * allocation variant of it.
+ */
+static unsigned test_bits_from_name(const char *name, const struct test *tests,
+				    int ntests)
 {
+	char buf[TEST_NAME_MAX];
+	unsigned mask = 0;
 	int i;
 
 	if (!strcmp(name, "all"))
-		return (1u << CAPTURE_METHOD_COUNT) - 1;
+		return (1u << ntests) - 1;
 
-	for (i = 0; i < CAPTURE_METHOD_COUNT; i++)
-		if (!strcmp(name, method_name(i)))
-			return 1u << i;
+	for (i = 0; i < ntests; i++) {
+		test_name(&tests[i], buf, sizeof(buf));
 
-	die("unknown method '%s'", name);
-	return 0;
+		if (!strcmp(name, buf) ||
+		    !strcmp(name, method_name(tests[i].method)))
+			mask |= 1u << i;
+	}
+
+	if (!mask)
+		die("unknown test '%s'", name);
+
+	return mask;
 }
 
 static int parse_int(const char *s, const char *what)
@@ -94,7 +117,8 @@ static double parse_double(const char *s, const char *what)
 	return v;
 }
 
-static void parse_args(int argc, char **argv, struct options *o)
+static void parse_args(int argc, char **argv, struct options *o,
+		       const struct test *tests, int ntests)
 {
 	enum {
 		OPT_CROP_W = 1000,
@@ -131,7 +155,7 @@ static void parse_args(int argc, char **argv, struct options *o)
 	o->quality = 85;
 	o->encode = false;
 	o->outdir = ".";
-	o->method_mask = 0;
+	o->test_mask = 0;
 
 	while ((c = getopt_long(argc, argv, "d:W:H:m:w:eq:o:h", longopts,
 				NULL)) != -1) {
@@ -158,7 +182,8 @@ static void parse_args(int argc, char **argv, struct options *o)
 			o->crop_y = parse_int(optarg, "--crop-y");
 			break;
 		case 'm':
-			o->method_mask |= method_bit_from_name(optarg);
+			o->test_mask |= test_bits_from_name(optarg, tests,
+							    ntests);
 			break;
 		case 'w':
 			o->warmup = parse_int(optarg, "--warmup");
@@ -184,8 +209,8 @@ static void parse_args(int argc, char **argv, struct options *o)
 	if (optind < argc)
 		die("unexpected argument '%s'", argv[optind]);
 
-	if (!o->method_mask)
-		o->method_mask = (1u << CAPTURE_METHOD_COUNT) - 1;
+	if (!o->test_mask)
+		o->test_mask = (1u << ntests) - 1;
 
 	if (o->width < 1 || o->height < 1)
 		die("frame size must be at least 1x1");
@@ -211,28 +236,32 @@ static void parse_args(int argc, char **argv, struct options *o)
 		die("jpeg quality must be between 1 and 100");
 }
 
-static void run_method(struct renderer *r, enum capture_method m,
-		       const struct options *o, struct result *res)
+static void run_test(struct renderer *r, const struct test *t,
+		     const struct options *o, struct result *res)
 {
 	struct capture cap;
 	struct mjpeg *mj = NULL;
+	char name[TEST_NAME_MAX];
 	double t0;
 	int i;
 
 	memset(res, 0, sizeof(*res));
-	res->method = m;
+	res->test = *t;
+	test_name(t, name, sizeof(name));
 
-	capture_init(&cap, m, o, r);
+	capture_init(&cap, t, o, r);
 
 	if (o->encode) {
 		snprintf(res->output, sizeof(res->output),
 			 "%s/readpixels-%s-%dx%d-crop%dx%d.mjpg",
-			 o->outdir, method_name(m), o->width, o->height,
+			 o->outdir, name, o->width, o->height,
 			 o->crop_w, o->crop_h);
 		mj = mjpeg_open(res->output, o->crop_w, o->crop_h, o->quality);
 	}
 
-	log_msg("running %s: %s", method_name(m), method_description(m));
+	log_msg("running %s: %s%s", name, method_description(t->method),
+		t->realloc_staging ?
+		", with the staging buffer allocated and freed per capture" : "");
 
 	/*
 	 * Warm up so that shader compilation, buffer allocation and the first
@@ -270,11 +299,17 @@ static void run_method(struct renderer *r, enum capture_method m,
 static json_object *result_json(const struct result *res)
 {
 	json_object *j = json_object_new_object();
+	char name[TEST_NAME_MAX];
 
+	test_name(&res->test, name, sizeof(name));
+
+	json_object_object_add(j, "test", json_object_new_string(name));
 	json_object_object_add(j, "method",
-			       json_object_new_string(method_name(res->method)));
+		json_object_new_string(method_name(res->test.method)));
+	json_object_object_add(j, "staging_realloc",
+		json_object_new_boolean(res->test.realloc_staging));
 	json_object_object_add(j, "description",
-		json_object_new_string(method_description(res->method)));
+		json_object_new_string(method_description(res->test.method)));
 	json_object_object_add(j, "frames",
 			       json_object_new_int64((int64_t)res->frames));
 	add_double(j, "elapsed_s", res->elapsed, 6);
@@ -334,24 +369,26 @@ int main(int argc, char **argv)
 	struct options opts;
 	struct gl_ctx gl;
 	struct renderer renderer;
-	struct result results[CAPTURE_METHOD_COUNT];
+	struct test tests[TEST_MAX];
+	struct result results[TEST_MAX];
 	json_object *root, *array;
 	int i;
+	int ntests = test_list(tests);
 	int nresults = 0;
 
-	parse_args(argc, argv, &opts);
+	parse_args(argc, argv, &opts, tests, ntests);
 
 	gl_ctx_init(&gl);
 	renderer_init(&renderer, opts.width, opts.height);
 
-	log_msg("frame %dx%d, crop %dx%d+%d+%d, %.3f s per method",
+	log_msg("frame %dx%d, crop %dx%d+%d+%d, %.3f s per test",
 		opts.width, opts.height, opts.crop_w, opts.crop_h,
 		opts.crop_x, opts.crop_y, opts.duration);
 
-	for (i = 0; i < CAPTURE_METHOD_COUNT; i++) {
-		if (!(opts.method_mask & (1u << i)))
+	for (i = 0; i < ntests; i++) {
+		if (!(opts.test_mask & (1u << i)))
 			continue;
-		run_method(&renderer, i, &opts, &results[nresults++]);
+		run_test(&renderer, &tests[i], &opts, &results[nresults++]);
 	}
 
 	log_msg("copy checksum %016llx",

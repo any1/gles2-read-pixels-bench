@@ -32,7 +32,7 @@ uint64_t capture_get_checksum(void)
  * the crop is moved with glCopyTexSubImage2D, which stays on the GPU, and the
  * readback is then an untruncated full-surface glReadPixels.
  */
-static void gpu_staging_init(struct capture *c)
+static void gpu_staging_alloc(struct capture *c)
 {
 	GLenum status;
 
@@ -44,17 +44,26 @@ static void gpu_staging_init(struct capture *c)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	gl_check("staging texture creation");
 
 	glGenFramebuffers(1, &c->stage_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, c->stage_fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			       GL_TEXTURE_2D, c->stage_tex, 0);
-	gl_check("staging framebuffer creation");
 
-	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-		die("staging framebuffer incomplete (0x%04x)", status);
+	/*
+	 * Both of these queries drain the pipeline, so the same staging
+	 * target is only validated the first time it is built.  Repeat
+	 * allocations differ from it in nothing but their object names.
+	 */
+	if (!c->staging_checked) {
+		gl_check("staging target creation");
+
+		status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
+			die("staging framebuffer incomplete (0x%04x)", status);
+
+		c->staging_checked = true;
+	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, c->src_fbo);
 }
@@ -84,7 +93,7 @@ static void direct_init(struct capture *c)
  * mapped and copied out.  GL_OES_mapbuffer on its own only offers write-only
  * mappings, so reading the result back needs glMapBufferRangeEXT.
  */
-static void pbo_init(struct capture *c)
+static void pbo_init(void)
 {
 	if (!epoxy_has_gl_extension("GL_NV_pixel_buffer_object"))
 		die("the pbo method needs GL_NV_pixel_buffer_object");
@@ -92,7 +101,10 @@ static void pbo_init(struct capture *c)
 		die("the pbo method needs GL_EXT_map_buffer_range to map for reading");
 	if (!epoxy_has_gl_extension("GL_OES_mapbuffer"))
 		die("the pbo method needs GL_OES_mapbuffer for glUnmapBufferOES");
+}
 
+static void pbo_alloc(struct capture *c)
+{
 	glGenBuffers(1, &c->pbo);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, c->pbo);
 
@@ -104,15 +116,76 @@ static void pbo_init(struct capture *c)
 	glBufferData(GL_PIXEL_PACK_BUFFER_NV, (GLsizeiptr)c->frame_bytes, NULL,
 		     GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
-	gl_check("pixel pack buffer creation");
+
+	if (!c->staging_checked) {
+		gl_check("pixel pack buffer creation");
+		c->staging_checked = true;
+	}
 }
 
-void capture_init(struct capture *c, enum capture_method m,
+/*
+ * The staging resources of the method, if it has any.  They are built once at
+ * init and torn down at fini, unless the caller has asked for them to be
+ * built and torn down around every single capture, as a caller that cannot
+ * hold on to them between frames would have to do.
+ */
+static void staging_alloc(struct capture *c)
+{
+	switch (c->method) {
+	case CAPTURE_GPU_STAGING:
+		gpu_staging_alloc(c);
+		break;
+	case CAPTURE_CPU_STAGING:
+		c->staging = xmalloc((size_t)c->fb_width * c->fb_height * 4);
+		break;
+	case CAPTURE_PBO:
+		pbo_alloc(c);
+		break;
+	default:
+		break;
+	}
+}
+
+static void staging_free(struct capture *c)
+{
+	if (c->stage_fbo) {
+		glDeleteFramebuffers(1, &c->stage_fbo);
+		c->stage_fbo = 0;
+	}
+	if (c->stage_tex) {
+		glDeleteTextures(1, &c->stage_tex);
+		c->stage_tex = 0;
+	}
+	if (c->pbo) {
+		glDeleteBuffers(1, &c->pbo);
+		c->pbo = 0;
+	}
+
+	free(c->staging);
+	c->staging = NULL;
+}
+
+bool method_has_staging(enum capture_method m)
+{
+	switch (m) {
+	case CAPTURE_GPU_STAGING:
+	case CAPTURE_CPU_STAGING:
+	case CAPTURE_PBO:
+		return true;
+	default:
+		return false;
+	}
+}
+
+void capture_init(struct capture *c, const struct test *t,
 		  const struct options *o, const struct renderer *r)
 {
+	enum capture_method m = t->method;
+
 	memset(c, 0, sizeof(*c));
 
 	c->method = m;
+	c->realloc_staging = t->realloc_staging;
 	c->fb_width = o->width;
 	c->fb_height = o->height;
 	c->w = o->crop_w;
@@ -135,16 +208,14 @@ void capture_init(struct capture *c, enum capture_method m,
 
 	switch (m) {
 	case CAPTURE_GPU_STAGING:
-	case CAPTURE_PER_ROW:
-		break;
 	case CAPTURE_CPU_STAGING:
-		c->staging = xmalloc((size_t)c->fb_width * c->fb_height * 4);
+	case CAPTURE_PER_ROW:
 		break;
 	case CAPTURE_DIRECT:
 		direct_init(c);
 		break;
 	case CAPTURE_PBO:
-		pbo_init(c);
+		pbo_init();
 		break;
 	default:
 		die("unknown capture method");
@@ -157,20 +228,24 @@ void capture_init(struct capture *c, enum capture_method m,
 	if (m == CAPTURE_DIRECT)
 		c->crop += (size_t)c->y * c->crop_pitch + (size_t)c->x * 4;
 
-	if (m == CAPTURE_GPU_STAGING)
-		gpu_staging_init(c);
+	if (!c->realloc_staging)
+		staging_alloc(c);
 }
 
 /*
  * Captures the crop of whatever is currently in the render framebuffer into
  * c->dst.  Every path here is synchronous: glReadPixels into client memory
  * blocks until the pixels have arrived, which is exactly the cost being
- * measured.
+ * measured.  So is the staging allocation when it has been asked for per
+ * capture; it is part of what such a capture costs.
  */
 void capture_frame(struct capture *c)
 {
 	void *map;
 	int row;
+
+	if (c->realloc_staging)
+		staging_alloc(c);
 
 	switch (c->method) {
 	case CAPTURE_GPU_STAGING:
@@ -246,6 +321,9 @@ void capture_frame(struct capture *c)
 		die("unknown capture method");
 	}
 
+	if (c->realloc_staging)
+		staging_free(c);
+
 	capture_touch(c);
 	c->completed++;
 }
@@ -258,13 +336,7 @@ void capture_fini(struct capture *c)
 		glPixelStorei(GL_PACK_SKIP_ROWS, 0);
 	}
 
-	if (c->stage_fbo)
-		glDeleteFramebuffers(1, &c->stage_fbo);
-	if (c->stage_tex)
-		glDeleteTextures(1, &c->stage_tex);
-	if (c->pbo)
-		glDeleteBuffers(1, &c->pbo);
-	free(c->staging);
+	staging_free(c);
 	free(c->dst);
 	memset(c, 0, sizeof(*c));
 }
