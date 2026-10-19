@@ -21,7 +21,7 @@ import tty
 
 from PIL import Image, ImageDraw, ImageFont
 
-# Reference palette: chart surface, text tokens and categorical slot 1.
+# Reference palette: chart surface, text tokens and categorical slots 1-4.
 THEMES = {
     'light': {
         'surface': (0xfc, 0xfc, 0xfb),
@@ -29,6 +29,9 @@ THEMES = {
         'text2': (0x52, 0x51, 0x4e),
         'axis': (0xc3, 0xc2, 0xb7),
         'bar': (0x2a, 0x78, 0xd6),
+        'cpu': (0xeb, 0x68, 0x34),
+        'gpu': (0x1b, 0xaf, 0x7a),
+        'eff': (0xed, 0xa1, 0x00),
     },
     'dark': {
         'surface': (0x1a, 0x1a, 0x19),
@@ -36,6 +39,9 @@ THEMES = {
         'text2': (0xc3, 0xc2, 0xb7),
         'axis': (0x52, 0x51, 0x4e),
         'bar': (0x39, 0x87, 0xe5),
+        'cpu': (0xd9, 0x59, 0x26),
+        'gpu': (0x19, 0x9e, 0x70),
+        'eff': (0xc9, 0x85, 0x00),
     },
 }
 
@@ -127,34 +133,75 @@ def subtitle(doc):
     return ' · '.join(parts)
 
 
+def load_pct(r, key):
+    load = r.get(key)
+    if isinstance(load, dict) and 'load_pct' in load:
+        return float(load['load_pct'])
+    return None
+
+
+def efficiency(r):
+    cpu = load_pct(r, 'cpu')
+    gpu = load_pct(r, 'gpu')
+    if cpu is None or gpu is None or cpu + gpu <= 0:
+        return None
+    return float(r.get('fps', 0.0)) / (cpu + gpu)
+
+
 def render(doc, width, cell_h, theme):
     results = doc.get('results', [])
     names = [r.get('test', '?') for r in results]
     fps = [float(r.get('fps', 0.0)) for r in results]
-    values = [format_fps(v) for v in fps]
+    effs = [efficiency(r) for r in results]
+
+    fps_max = max(fps) if fps and max(fps) > 0 else 1.0
+    eff_max = max((e for e in effs if e is not None), default=0.0) or 1.0
 
     s = cell_h / 20
     font = ImageFont.load_default(size=round(cell_h * 0.7))
+    small = ImageFont.load_default(size=round(cell_h * 0.55))
     title_font = ImageFont.load_default(size=round(cell_h * 0.8))
     pad = round(12 * s)
     gap = round(8 * s)
-    pitch = round(cell_h * 1.4)
+    pitch = round(cell_h * 1.2)
+    thin_pitch = round(cell_h * 0.6)
+    group_gap = round(cell_h * 0.5)
     bar_h = min(round(cell_h * 0.8), round(24 * s))
+    thin_h = max(2, round(cell_h * 0.3))
     radius = max(1, round(4 * s))
 
     def text_w(t, f=font):
         return round(f.getlength(t))
 
-    label_w = max(text_w(n) for n in names)
-    value_w = max(text_w(v) for v in values)
+    # (label, value, scale, value text, colour, thick) per bar, per test
+    groups = []
+    for r, f, e in zip(results, fps, effs):
+        bars = [(r.get('test', '?'), f, fps_max, format_fps(f), 'bar', True)]
+        for key, label in (('cpu', 'CPU'), ('gpu', 'GPU')):
+            v = load_pct(r, key)
+            if v is not None:
+                bars.append((label, v, 100.0, f'{v:.1f}%', key, False))
+        if e is not None:
+            bars.append(('fps / load', e, eff_max, f'{e:.2f} fps/%',
+                         'eff', False))
+        groups.append(bars)
+
+    label_w = max(text_w(b[0], font if b[5] else small)
+                  for bars in groups for b in bars)
+    value_w = max(text_w(b[3], font if b[5] else small)
+                  for bars in groups for b in bars)
 
     plot_x = pad + label_w + gap
     plot_w = width - plot_x - gap - value_w - pad
     if plot_w < 20:
         raise ValueError('terminal too narrow for chart')
 
+    def group_h(bars):
+        return pitch + thin_pitch * (len(bars) - 1)
+
     head_h = cell_h * 2
-    body_h = pitch * len(results)
+    body_h = (sum(group_h(bars) for bars in groups) +
+              group_gap * (len(groups) - 1))
     height = head_h + body_h + pad
 
     # Whole sixel bands, or the terminal pads the last band with colour 0.
@@ -172,23 +219,36 @@ def render(doc, width, cell_h, theme):
     d.line([(plot_x, top), (plot_x, top + body_h - 1)],
            fill=theme['axis'], width=max(1, round(s)))
 
-    vmax = max(fps) if fps and max(fps) > 0 else 1.0
-    for i, (name, v, label) in enumerate(zip(names, fps, values)):
-        cy = top + i * pitch + pitch // 2
-        d.text((plot_x - gap, cy), name, font=font,
-               fill=theme['text'], anchor='rm')
+    x0 = plot_x + 1
+    y = top
+    for bars in groups:
+        for label, v, vmax, text, colour, thick in bars:
+            if thick:
+                cy = y + pitch // 2
+                h, f, ink = bar_h, font, theme['text']
+                y += pitch
+            else:
+                cy = y + thin_pitch // 2
+                h, f, ink = thin_h, small, theme['text2']
+                y += thin_pitch
 
-        bw = round(plot_w * v / vmax)
-        x0 = plot_x + 1
-        if bw > 0:
-            y0 = cy - bar_h // 2
-            y1 = y0 + bar_h - 1
-            d.rounded_rectangle([(x0, y0), (x0 + bw - 1, y1)],
-                                radius=min(radius, bw // 2),
-                                fill=theme['bar'],
-                                corners=(False, True, True, False))
-        d.text((x0 + bw + gap, cy), label, font=font,
-               fill=theme['text2'], anchor='lm')
+            d.text((plot_x - gap, cy), label, font=f, fill=ink, anchor='rm')
+
+            bw = round(plot_w * min(v, vmax) / vmax)
+            if bw > 0:
+                y0 = cy - h // 2
+                x1 = x0 + bw - 1
+                y1 = y0 + h - 1
+                r = min(radius, bw // 2, h // 2)
+
+                # rounded at the data end, square at the baseline
+                d.rounded_rectangle([(x0, y0), (x1, y1)], radius=r,
+                                    fill=theme[colour])
+                d.rectangle([(x0, y0), (max(x0, x1 - r), y1)],
+                            fill=theme[colour])
+            d.text((x0 + bw + gap, cy), text, font=f,
+                   fill=theme['text2'], anchor='lm')
+        y += group_gap
 
     return im
 
