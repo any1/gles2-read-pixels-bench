@@ -13,6 +13,7 @@ struct result {
 	struct test test;
 	uint64_t frames;
 	double elapsed;
+	struct load load;
 	char output[512];
 };
 
@@ -239,6 +240,7 @@ static void parse_args(int argc, char **argv, struct options *o,
 static void run_test(struct renderer *r, const struct test *t,
 		     const struct options *o, struct result *res)
 {
+	struct load_sample load_start, load_end;
 	struct capture cap;
 	struct mjpeg *mj = NULL;
 	char name[TEST_NAME_MAX];
@@ -274,6 +276,7 @@ static void run_test(struct renderer *r, const struct test *t,
 	gl_check("warmup");
 	cap.completed = 0;
 
+	load_sample(&load_start);
 	t0 = now_s();
 	while (now_s() - t0 < o->duration) {
 		renderer_draw(r, now_s() - t0);
@@ -284,16 +287,53 @@ static void run_test(struct renderer *r, const struct test *t,
 	}
 
 	res->elapsed = now_s() - t0;
+	load_sample(&load_end);
 	res->frames = cap.completed;
 	gl_check("capture loop");
+
+	load_diff(&load_start, &load_end, &res->load);
 
 	log_msg("  %llu frames in %.3f s (%.1f fps)",
 		(unsigned long long)res->frames, res->elapsed,
 		res->frames / res->elapsed);
+	log_msg("  cpu load %.1f%% of %d cpus", res->load.cpu_pct,
+		res->load.cpus);
+	if (!res->load.has_gpu)
+		log_msg("  gpu load unknown, no DRM client usage stats");
+	for (i = 0; i < res->load.n_engines; i++)
+		log_msg("  gpu load %s %.1f%%", res->load.engines[i].name,
+			res->load.engines[i].pct);
 
 	if (mj)
 		mjpeg_close(mj);
 	capture_fini(&cap);
+}
+
+static json_object *load_json(const struct load *l, json_object *res)
+{
+	json_object *cpu = json_object_new_object();
+	json_object *gpu, *engines;
+	int i;
+
+	add_double(cpu, "load_pct", l->cpu_pct, 2);
+	add_double(cpu, "time_s", l->cpu_s, 6);
+	json_object_object_add(cpu, "cpus", json_object_new_int(l->cpus));
+	json_object_object_add(res, "cpu", cpu);
+
+	/* no DRM usage stats, so nothing to say about the GPU */
+	if (!l->has_gpu) {
+		json_object_object_add(res, "gpu", NULL);
+		return res;
+	}
+
+	gpu = json_object_new_object();
+	engines = json_object_new_object();
+	add_double(gpu, "load_pct", l->gpu_pct, 2);
+	for (i = 0; i < l->n_engines; i++)
+		add_double(engines, l->engines[i].name, l->engines[i].pct, 2);
+	json_object_object_add(gpu, "engines", engines);
+	json_object_object_add(res, "gpu", gpu);
+	return res;
 }
 
 static json_object *result_json(const struct result *res)
@@ -315,6 +355,7 @@ static json_object *result_json(const struct result *res)
 	add_double(j, "elapsed_s", res->elapsed, 6);
 	add_double(j, "fps", res->elapsed > 0.0 ?
 		   res->frames / res->elapsed : 0.0, 2);
+	load_json(&res->load, j);
 
 	if (res->output[0])
 		json_object_object_add(j, "output",

@@ -129,6 +129,43 @@ void capture_frame(struct capture *c);
 void capture_fini(struct capture *c);
 uint64_t capture_get_checksum(void);
 
+/* load.c */
+#define LOAD_ENGINE_MAX 16
+#define LOAD_ENGINE_NAME_MAX 32
+#define LOAD_CLIENT_MAX 16
+
+struct load_engine {
+	char name[LOAD_ENGINE_NAME_MAX];
+	uint64_t busy_ns;
+	unsigned capacity;
+};
+
+struct load_sample {
+	double wall;			/* seconds, CLOCK_MONOTONIC */
+	double cpu;			/* process CPU seconds, all threads */
+	bool has_drm;
+	int n_engines;
+	struct load_engine engines[LOAD_ENGINE_MAX];
+};
+
+/* load between two samples, as percentages of what was available */
+struct load {
+	int cpus;
+	double cpu_s;
+	double cpu_pct;
+	bool has_gpu;
+	double gpu_pct;			/* the busiest engine */
+	int n_engines;
+	struct {
+		char name[LOAD_ENGINE_NAME_MAX];
+		double pct;
+	} engines[LOAD_ENGINE_MAX];
+};
+
+void load_sample(struct load_sample *s);
+void load_diff(const struct load_sample *a, const struct load_sample *b,
+	       struct load *out);
+
 /* mjpeg.c */
 struct mjpeg;
 
