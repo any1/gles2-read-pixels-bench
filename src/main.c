@@ -58,6 +58,7 @@ static void usage(FILE *f, const char *argv0)
 "                        verification only; this costs frames\n"
 "  -q, --quality N       jpeg quality, 1 to 100 (default 85)\n"
 "  -o, --output-dir DIR  where to write mjpeg files (default .)\n"
+"  -l, --list-extensions list the EGL and GLES2 extensions as json and exit\n"
 "  -h, --help            show this help\n"
 "\n"
 "tests:\n",
@@ -140,6 +141,7 @@ static void parse_args(int argc, char **argv, struct options *o,
 		{ "encode",	 no_argument,	    NULL, 'e' },
 		{ "quality",	 required_argument, NULL, 'q' },
 		{ "output-dir",	 required_argument, NULL, 'o' },
+		{ "list-extensions", no_argument,   NULL, 'l' },
 		{ "help",	 no_argument,	    NULL, 'h' },
 		{ NULL,		 0,		    NULL, 0 }
 	};
@@ -155,10 +157,11 @@ static void parse_args(int argc, char **argv, struct options *o,
 	o->warmup = 10;
 	o->quality = 85;
 	o->encode = false;
+	o->list_extensions = false;
 	o->outdir = ".";
 	o->test_mask = 0;
 
-	while ((c = getopt_long(argc, argv, "d:W:H:m:w:eq:o:h", longopts,
+	while ((c = getopt_long(argc, argv, "d:W:H:m:w:eq:o:lh", longopts,
 				NULL)) != -1) {
 		switch (c) {
 		case 'd':
@@ -197,6 +200,9 @@ static void parse_args(int argc, char **argv, struct options *o,
 			break;
 		case 'o':
 			o->outdir = optarg;
+			break;
+		case 'l':
+			o->list_extensions = true;
 			break;
 		case 'h':
 			usage(stdout, argv[0]);
@@ -405,6 +411,40 @@ static json_object *gl_json(void)
 	return j;
 }
 
+/* split a space separated extension string into a json array */
+static json_object *ext_list_json(const char *exts)
+{
+	json_object *j = json_object_new_array();
+	const char *p = exts ? exts : "";
+	size_t len;
+
+	while (*p) {
+		len = strcspn(p, " ");
+		if (len)
+			json_object_array_add(j,
+				json_object_new_string_len(p, (int)len));
+		p += len;
+		p += strspn(p, " ");
+	}
+
+	return j;
+}
+
+static void list_extensions(const struct gl_ctx *g)
+{
+	json_object *root = json_object_new_object();
+
+	json_object_object_add(root, "egl_client",
+		ext_list_json(eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS)));
+	json_object_object_add(root, "egl_display",
+		ext_list_json(eglQueryString(g->dpy, EGL_EXTENSIONS)));
+	json_object_object_add(root, "gles2",
+		ext_list_json((const char *)glGetString(GL_EXTENSIONS)));
+
+	puts(json_object_to_json_string_ext(root, JSON_C_TO_STRING_PRETTY));
+	json_object_put(root);
+}
+
 int main(int argc, char **argv)
 {
 	struct options opts;
@@ -420,6 +460,13 @@ int main(int argc, char **argv)
 	parse_args(argc, argv, &opts, tests, ntests);
 
 	gl_ctx_init(&gl);
+
+	if (opts.list_extensions) {
+		list_extensions(&gl);
+		gl_ctx_fini(&gl);
+		return EXIT_SUCCESS;
+	}
+
 	renderer_init(&renderer, opts.width, opts.height);
 
 	log_msg("frame %dx%d, crop %dx%d+%d+%d, %.3f s per test",

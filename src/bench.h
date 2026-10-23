@@ -49,6 +49,7 @@ struct options {
 	int warmup;		/* frames discarded before measuring */
 	int quality;		/* jpeg quality */
 	bool encode;
+	bool list_extensions;
 	const char *outdir;
 	unsigned test_mask;
 };
