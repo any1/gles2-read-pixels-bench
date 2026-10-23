@@ -14,7 +14,7 @@ deps = [
   dependency('glesv2'),
   dependency('epoxy'),
   dependency('json-c'),
-  dependency('libturbojpeg'),
+  dependency('libturbojpeg', version: '>= 2.0'),
   cc.find_library('m', required: false),
 ]
 

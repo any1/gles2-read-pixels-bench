@@ -14,9 +14,10 @@ struct mjpeg {
 	FILE *file;
 	tjhandle tj;
 	unsigned char *jpeg;
-	size_t jpeg_capacity;
+	unsigned long jpeg_capacity;
 	int width;
 	int height;
+	int quality;
 	uint64_t frames;
 	uint64_t bytes;
 };
@@ -27,6 +28,7 @@ struct mjpeg *mjpeg_open(const char *path, int width, int height, int quality)
 
 	m->width = width;
 	m->height = height;
+	m->quality = quality;
 	m->frames = 0;
 	m->bytes = 0;
 
@@ -34,37 +36,34 @@ struct mjpeg *mjpeg_open(const char *path, int width, int height, int quality)
 	if (!m->file)
 		die("cannot open %s for writing", path);
 
-	m->tj = tj3Init(TJINIT_COMPRESS);
+	m->tj = tjInitCompress();
 	if (!m->tj)
-		die("tj3Init failed");
+		die("tjInitCompress failed: %s", tjGetErrorStr2(NULL));
 
-	if (tj3Set(m->tj, TJPARAM_QUALITY, quality) < 0 ||
-	    tj3Set(m->tj, TJPARAM_SUBSAMP, TJSAMP_420) < 0 ||
-	    tj3Set(m->tj, TJPARAM_NOREALLOC, 1) < 0)
-		die("tj3Set failed: %s", tj3GetErrorStr(m->tj));
-
-	/*
-	 * glReadPixels hands back rows bottom up, so let turbojpeg walk the
-	 * buffer backwards rather than flipping it ourselves.
-	 */
-	if (tj3Set(m->tj, TJPARAM_BOTTOMUP, 1) < 0)
-		die("tj3Set failed: %s", tj3GetErrorStr(m->tj));
-
-	m->jpeg_capacity = tj3JPEGBufSize(width, height, TJSAMP_420);
-	m->jpeg = tj3Alloc(m->jpeg_capacity);
+	m->jpeg_capacity = tjBufSize(width, height, TJSAMP_420);
+	m->jpeg = tjAlloc((int)m->jpeg_capacity);
 	if (!m->jpeg)
-		die("tj3Alloc of %zu bytes failed", m->jpeg_capacity);
+		die("tjAlloc of %lu bytes failed", m->jpeg_capacity);
 
 	return m;
 }
 
 void mjpeg_write(struct mjpeg *m, const unsigned char *rgba, size_t pitch)
 {
-	size_t size = m->jpeg_capacity;
+	unsigned long size = m->jpeg_capacity;
 
-	if (tj3Compress8(m->tj, rgba, m->width, (int)pitch, m->height,
-			 TJPF_RGBA, &m->jpeg, &size) < 0)
-		die("tj3Compress8 failed: %s", tj3GetErrorStr(m->tj));
+	/*
+	 * glReadPixels hands back rows bottom up, so let turbojpeg walk the
+	 * buffer backwards rather than flipping it ourselves.
+	 *
+	 * This sticks to the TurboJPEG 2 API so that it also builds against
+	 * libjpeg-turbo 2.x, as shipped by Debian. TurboJPEG 3 still provides
+	 * it unchanged.
+	 */
+	if (tjCompress2(m->tj, rgba, m->width, (int)pitch, m->height,
+			TJPF_RGBA, &m->jpeg, &size, TJSAMP_420, m->quality,
+			TJFLAG_BOTTOMUP | TJFLAG_NOREALLOC) < 0)
+		die("tjCompress2 failed: %s", tjGetErrorStr2(m->tj));
 
 	if (fwrite(m->jpeg, 1, size, m->file) != size)
 		die("short write to mjpeg output");
@@ -81,7 +80,7 @@ void mjpeg_close(struct mjpeg *m)
 	log_msg("  wrote %llu jpeg frames, %.1f MiB",
 		(unsigned long long)m->frames, m->bytes / (1024.0 * 1024.0));
 
-	tj3Free(m->jpeg);
-	tj3Destroy(m->tj);
+	tjFree(m->jpeg);
+	tjDestroy(m->tj);
 	free(m);
 }
