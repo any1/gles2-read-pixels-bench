@@ -19,6 +19,8 @@ const char *method_name(enum capture_method m)
 		return "pbo-unaligned";
 	case CAPTURE_UDMABUF:
 		return "udmabuf";
+	case CAPTURE_GBM:
+		return "gbm";
 	default:
 		return "unknown";
 	}
@@ -56,6 +58,13 @@ const char *method_description(enum capture_method m)
 		       "EGL_EXT_image_dma_buf_import and attached with "
 		       "GL_OES_EGL_image, then glFinish and a per-row memcpy "
 		       "of the crop out of the mapping, no glReadPixels";
+	case CAPTURE_GBM:
+		return "the frame rendered into a GBM buffer object laid out "
+		       "as the driver prefers, imported through "
+		       "EGL_EXT_image_dma_buf_import and attached with "
+		       "GL_OES_EGL_image, then glFinish and the crop read "
+		       "through gbm_bo_map, which leaves the copy to the "
+		       "driver, no glReadPixels";
 	default:
 		return "unknown";
 	}

@@ -1,24 +1,32 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <gbm.h>
 #include <linux/dma-buf.h>
 #include <linux/udmabuf.h>
 
 #include "bench.h"
 
 /*
- * DRM_FORMAT_ABGR8888 from drm_fourcc.h, spelled out here so that libdrm is
- * not a dependency for the sake of one constant.  Little endian a:b:g:r in a
- * 32 bit word, which is r, g, b, a in memory, the same as GL_RGBA with
- * GL_UNSIGNED_BYTE.
+ * The one pixel format used throughout, as a DRM fourcc: little endian
+ * a:b:g:r in a 32 bit word, which is r, g, b, a in memory, the same as
+ * GL_RGBA with GL_UNSIGNED_BYTE.  gbm.h carries the fourcc values, so libdrm
+ * is not needed for them; the modifier constant it does not carry is
+ * DRM_FORMAT_MOD_INVALID from drm_fourcc.h, spelled out below.
  */
-#define FOURCC_ABGR8888 ((uint32_t)'A' | (uint32_t)'B' << 8 | \
-			 (uint32_t)'2' << 16 | (uint32_t)'4' << 24)
+#define FOURCC_ABGR8888 GBM_FORMAT_ABGR8888
+#define FORMAT_MOD_INVALID 0x00ffffffffffffffULL
+
+/* EGL_EXT_device_drm_render_node is newer than the epoxy headers here */
+#ifndef EGL_DRM_RENDER_NODE_FILE_EXT
+#define EGL_DRM_RENDER_NODE_FILE_EXT 0x3377
+#endif
 
 /*
  * Reading the destination buffer through a volatile accumulator keeps the
@@ -155,6 +163,52 @@ static void pbo_alloc(struct capture *c)
 }
 
 /*
+ * Attaches c->image to a framebuffer as a renderbuffer and points the
+ * renderer at it, so that every frame from here on is drawn into whatever
+ * memory that image was made from.
+ */
+static void image_target_init(struct capture *c, struct renderer *r)
+{
+	GLenum status;
+
+	if (!epoxy_has_gl_extension("GL_OES_EGL_image"))
+		die("rendering into an EGLImage needs GL_OES_EGL_image");
+
+	glGenRenderbuffers(1, &c->image_rb);
+	glBindRenderbuffer(GL_RENDERBUFFER, c->image_rb);
+	glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, c->image);
+
+	glGenFramebuffers(1, &c->image_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, c->image_fbo);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+				  GL_RENDERBUFFER, c->image_rb);
+	gl_check("EGLImage render target creation");
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+		die("EGLImage framebuffer incomplete (0x%04x)", status);
+
+	c->renderer = r;
+	c->saved_fbo = r->fbo;
+	r->fbo = c->image_fbo;
+	c->src_fbo = c->image_fbo;
+}
+
+static void image_target_free(struct capture *c)
+{
+	if (c->renderer) {
+		c->renderer->fbo = c->saved_fbo;
+		c->renderer = NULL;
+	}
+	if (c->image_fbo)
+		glDeleteFramebuffers(1, &c->image_fbo);
+	if (c->image_rb)
+		glDeleteRenderbuffers(1, &c->image_rb);
+	if (c->image != EGL_NO_IMAGE_KHR)
+		eglDestroyImageKHR(eglGetCurrentDisplay(), c->image);
+}
+
+/*
  * No readback at all: the frame is rendered straight into a linear buffer in
  * host memory that this process owns, and the crop is copied out of it with
  * the CPU once the GPU is done.  The buffer is a memfd turned into a dma-buf
@@ -174,15 +228,12 @@ static void udmabuf_init(struct capture *c, struct renderer *r)
 	EGLDisplay dpy = eglGetCurrentDisplay();
 	struct udmabuf_create create = { 0 };
 	EGLint attrs[32];
-	GLenum status;
 	long page;
 	int dev;
 	int n = 0;
 
 	if (!epoxy_has_egl_extension(dpy, "EGL_EXT_image_dma_buf_import"))
 		die("the udmabuf method needs EGL_EXT_image_dma_buf_import");
-	if (!epoxy_has_gl_extension("GL_OES_EGL_image"))
-		die("the udmabuf method needs GL_OES_EGL_image");
 
 	/* udmabuf wants whole pages and a memfd that cannot shrink */
 	page = sysconf(_SC_PAGESIZE);
@@ -244,44 +295,200 @@ static void udmabuf_init(struct capture *c, struct renderer *r)
 		die("eglCreateImageKHR of the udmabuf failed (0x%04x)",
 		    eglGetError());
 
-	glGenRenderbuffers(1, &c->udma_rb);
-	glBindRenderbuffer(GL_RENDERBUFFER, c->udma_rb);
-	glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, c->image);
-
-	glGenFramebuffers(1, &c->udma_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, c->udma_fbo);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-				  GL_RENDERBUFFER, c->udma_rb);
-	gl_check("udmabuf render target creation");
-
-	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-		die("udmabuf framebuffer incomplete (0x%04x)", status);
-
-	c->renderer = r;
-	c->saved_fbo = r->fbo;
-	r->fbo = c->udma_fbo;
-	c->src_fbo = c->udma_fbo;
+	image_target_init(c, r);
 }
 
 static void udmabuf_free(struct capture *c)
 {
-	if (c->renderer) {
-		c->renderer->fbo = c->saved_fbo;
-		c->renderer = NULL;
-	}
-	if (c->udma_fbo)
-		glDeleteFramebuffers(1, &c->udma_fbo);
-	if (c->udma_rb)
-		glDeleteRenderbuffers(1, &c->udma_rb);
-	if (c->image != EGL_NO_IMAGE_KHR)
-		eglDestroyImageKHR(eglGetCurrentDisplay(), c->image);
+	image_target_free(c);
 	if (c->map && c->map != MAP_FAILED)
 		munmap(c->map, c->map_size);
 	if (c->dmabuf >= 0)
 		close(c->dmabuf);
 	if (c->memfd >= 0)
 		close(c->memfd);
+}
+
+/*
+ * The render node behind the EGL display, when EGL will say which it is, or
+ * else the first one that opens.
+ */
+static int open_render_node(EGLDisplay dpy)
+{
+	EGLDeviceEXT dev = EGL_NO_DEVICE_EXT;
+	EGLAttrib attr = 0;
+	const char *exts, *path;
+	char buf[32];
+	int i, fd;
+
+	exts = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+	if (exts && strstr(exts, "EGL_EXT_device_query") &&
+	    eglQueryDisplayAttribEXT(dpy, EGL_DEVICE_EXT, &attr))
+		dev = (EGLDeviceEXT)attr;
+
+	if (dev != EGL_NO_DEVICE_EXT) {
+		exts = eglQueryDeviceStringEXT(dev, EGL_EXTENSIONS);
+		path = exts && strstr(exts, "EGL_EXT_device_drm_render_node") ?
+			eglQueryDeviceStringEXT(dev, EGL_DRM_RENDER_NODE_FILE_EXT) :
+			NULL;
+		if (path) {
+			fd = open(path, O_RDWR | O_CLOEXEC);
+			if (fd < 0)
+				die("opening %s failed: %s", path, strerror(errno));
+			log_msg("gbm on %s, named by EGL", path);
+			return fd;
+		}
+	}
+
+	for (i = 128; i < 192; i++) {
+		snprintf(buf, sizeof(buf), "/dev/dri/renderD%d", i);
+		fd = open(buf, O_RDWR | O_CLOEXEC);
+		if (fd >= 0) {
+			log_msg("gbm on %s, the first render node found", buf);
+			return fd;
+		}
+	}
+
+	die("no DRM render node could be opened");
+	return -1;
+}
+
+/*
+ * Also no glReadPixels, but no say over the layout either: the frame is a
+ * GBM buffer object created for rendering, with the modifiers EGL is willing
+ * to import, so the driver puts it wherever and tiles it however it renders
+ * best.  It is imported as an EGLImage and drawn into like the udmabuf, and
+ * the crop is read through gbm_bo_map(), which leaves it to the driver to
+ * get those pixels into something the CPU can read.  Mesa copies through a
+ * linear staging buffer the same way glReadPixels does, so what this
+ * measures is that copy without the GL pixel path on top of it.
+ */
+static void gbm_init(struct capture *c, struct renderer *r)
+{
+	static const EGLint fd_attr[4] = {
+		EGL_DMA_BUF_PLANE0_FD_EXT, EGL_DMA_BUF_PLANE1_FD_EXT,
+		EGL_DMA_BUF_PLANE2_FD_EXT, EGL_DMA_BUF_PLANE3_FD_EXT,
+	};
+	static const EGLint offset_attr[4] = {
+		EGL_DMA_BUF_PLANE0_OFFSET_EXT, EGL_DMA_BUF_PLANE1_OFFSET_EXT,
+		EGL_DMA_BUF_PLANE2_OFFSET_EXT, EGL_DMA_BUF_PLANE3_OFFSET_EXT,
+	};
+	static const EGLint pitch_attr[4] = {
+		EGL_DMA_BUF_PLANE0_PITCH_EXT, EGL_DMA_BUF_PLANE1_PITCH_EXT,
+		EGL_DMA_BUF_PLANE2_PITCH_EXT, EGL_DMA_BUF_PLANE3_PITCH_EXT,
+	};
+	static const EGLint mod_lo_attr[4] = {
+		EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT,
+		EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT,
+		EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT,
+		EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT,
+	};
+	static const EGLint mod_hi_attr[4] = {
+		EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT,
+		EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT,
+		EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT,
+		EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT,
+	};
+	EGLDisplay dpy = eglGetCurrentDisplay();
+	EGLuint64KHR mods[64];
+	EGLint nmods = 0;
+	EGLint attrs[64];
+	uint64_t modifier;
+	int fds[4];
+	int planes, p;
+	int n = 0;
+
+	if (!epoxy_has_egl_extension(dpy, "EGL_EXT_image_dma_buf_import"))
+		die("the gbm method needs EGL_EXT_image_dma_buf_import");
+
+	c->drm_fd = open_render_node(dpy);
+	c->gbm = gbm_create_device(c->drm_fd);
+	if (!c->gbm)
+		die("gbm_create_device failed");
+
+	/*
+	 * Given the choice, let GBM pick among the layouts EGL can import.
+	 * Without modifiers both sides fall back to what the driver does by
+	 * default for the format, which has to agree too.
+	 */
+	if (epoxy_has_egl_extension(dpy,
+				    "EGL_EXT_image_dma_buf_import_modifiers") &&
+	    !eglQueryDmaBufModifiersEXT(dpy, FOURCC_ABGR8888, 64, mods, NULL,
+					&nmods))
+		nmods = 0;
+
+	if (nmods > 0)
+		c->bo = gbm_bo_create_with_modifiers2(c->gbm, c->fb_width,
+						      c->fb_height,
+						      FOURCC_ABGR8888, mods,
+						      nmods,
+						      GBM_BO_USE_RENDERING);
+	if (!c->bo)
+		c->bo = gbm_bo_create(c->gbm, c->fb_width, c->fb_height,
+				      FOURCC_ABGR8888, GBM_BO_USE_RENDERING);
+	if (!c->bo)
+		die("gbm_bo_create failed: %s", strerror(errno));
+
+	modifier = gbm_bo_get_modifier(c->bo);
+	planes = gbm_bo_get_plane_count(c->bo);
+	if (planes < 1 || planes > 4)
+		die("gbm buffer with %d planes", planes);
+
+	log_msg("gbm buffer: modifier 0x%016llx, %d plane%s, stride %u",
+		(unsigned long long)modifier, planes, planes == 1 ? "" : "s",
+		gbm_bo_get_stride(c->bo));
+
+	attrs[n++] = EGL_WIDTH;
+	attrs[n++] = c->fb_width;
+	attrs[n++] = EGL_HEIGHT;
+	attrs[n++] = c->fb_height;
+	attrs[n++] = EGL_LINUX_DRM_FOURCC_EXT;
+	attrs[n++] = (EGLint)FOURCC_ABGR8888;
+
+	for (p = 0; p < planes; p++) {
+		fds[p] = gbm_bo_get_fd_for_plane(c->bo, p);
+		if (fds[p] < 0)
+			die("gbm_bo_get_fd_for_plane(%d) failed: %s", p,
+			    strerror(errno));
+
+		attrs[n++] = fd_attr[p];
+		attrs[n++] = fds[p];
+		attrs[n++] = offset_attr[p];
+		attrs[n++] = (EGLint)gbm_bo_get_offset(c->bo, p);
+		attrs[n++] = pitch_attr[p];
+		attrs[n++] = (EGLint)gbm_bo_get_stride_for_plane(c->bo, p);
+
+		if (modifier != FORMAT_MOD_INVALID) {
+			attrs[n++] = mod_lo_attr[p];
+			attrs[n++] = (EGLint)(modifier & 0xffffffff);
+			attrs[n++] = mod_hi_attr[p];
+			attrs[n++] = (EGLint)(modifier >> 32);
+		}
+	}
+	attrs[n++] = EGL_NONE;
+
+	c->image = eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
+				     NULL, attrs);
+	if (c->image == EGL_NO_IMAGE_KHR)
+		die("eglCreateImageKHR of the gbm buffer failed (0x%04x)",
+		    eglGetError());
+
+	/* the image holds its own references to the planes */
+	for (p = 0; p < planes; p++)
+		close(fds[p]);
+
+	image_target_init(c, r);
+}
+
+static void gbm_free(struct capture *c)
+{
+	image_target_free(c);
+	if (c->bo)
+		gbm_bo_destroy(c->bo);
+	if (c->gbm)
+		gbm_device_destroy(c->gbm);
+	if (c->drm_fd >= 0)
+		close(c->drm_fd);
 }
 
 /*
@@ -341,9 +548,9 @@ static void staging_free(struct capture *c)
 }
 
 /*
- * The udmabuf buffer is the render target itself, so unlike a staging buffer
- * it cannot be built after the frame has been rendered and freed after the
- * capture; it has no per-capture variant.
+ * The udmabuf and gbm buffers are the render target itself, so unlike a
+ * staging buffer they cannot be built after the frame has been rendered and
+ * freed after the capture; those methods have no per-capture variant.
  */
 bool method_has_staging(enum capture_method m)
 {
@@ -366,6 +573,7 @@ void capture_init(struct capture *c, const struct test *t,
 	memset(c, 0, sizeof(*c));
 	c->memfd = -1;
 	c->dmabuf = -1;
+	c->drm_fd = -1;
 	c->image = EGL_NO_IMAGE_KHR;
 
 	c->method = m;
@@ -405,6 +613,9 @@ void capture_init(struct capture *c, const struct test *t,
 	case CAPTURE_UDMABUF:
 		udmabuf_init(c, r);
 		break;
+	case CAPTURE_GBM:
+		gbm_init(c, r);
+		break;
 	default:
 		die("unknown capture method");
 	}
@@ -429,7 +640,8 @@ void capture_init(struct capture *c, const struct test *t,
  */
 void capture_frame(struct capture *c)
 {
-	void *map;
+	void *map, *map_data;
+	uint32_t stride;
 	int row;
 
 	if (c->realloc_staging)
@@ -528,6 +740,29 @@ void capture_frame(struct capture *c)
 		udmabuf_sync(c, DMA_BUF_SYNC_END);
 		break;
 
+	case CAPTURE_GBM:
+		/*
+		 * gbm_bo_map() has the driver deliver just the crop, which
+		 * for a tiled buffer means a copy into a linear staging
+		 * buffer of its choosing.  It also waits for the GPU, but
+		 * through a context of its own, so finish here first.  The
+		 * map data has to come in clear or mesa refuses the map.
+		 */
+		glFinish();
+		map_data = NULL;
+		map = gbm_bo_map(c->bo, c->x, c->y, c->w, c->h,
+				 GBM_BO_TRANSFER_READ, &stride, &map_data);
+		if (!map)
+			die("gbm_bo_map failed: %s", strerror(errno));
+
+		for (row = 0; row < c->h; row++)
+			memcpy(c->dst + (size_t)row * c->row_bytes,
+			       (const unsigned char *)map + (size_t)row * stride,
+			       c->row_bytes);
+
+		gbm_bo_unmap(c->bo, map_data);
+		break;
+
 	default:
 		die("unknown capture method");
 	}
@@ -546,8 +781,16 @@ void capture_fini(struct capture *c)
 		glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
 		glPixelStorei(GL_PACK_SKIP_ROWS, 0);
 	}
-	if (c->method == CAPTURE_UDMABUF)
+	switch (c->method) {
+	case CAPTURE_UDMABUF:
 		udmabuf_free(c);
+		break;
+	case CAPTURE_GBM:
+		gbm_free(c);
+		break;
+	default:
+		break;
+	}
 
 	staging_free(c);
 	free(c->dst);

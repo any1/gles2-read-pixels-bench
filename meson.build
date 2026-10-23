@@ -13,6 +13,7 @@ add_project_arguments('-D_GNU_SOURCE', language: 'c')
 deps = [
   dependency('glesv2'),
   dependency('epoxy'),
+  dependency('gbm'),
   dependency('json-c'),
   dependency('libturbojpeg', version: '>= 2.0'),
   cc.find_library('m', required: false),
