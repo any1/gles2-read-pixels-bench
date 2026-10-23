@@ -15,6 +15,8 @@ const char *method_name(enum capture_method m)
 		return "direct";
 	case CAPTURE_PBO:
 		return "pbo";
+	case CAPTURE_PBO_UNALIGNED:
+		return "pbo-unaligned";
 	default:
 		return "unknown";
 	}
@@ -40,6 +42,12 @@ const char *method_description(enum capture_method m)
 		return "glReadPixels of the crop into a pixel pack buffer, "
 		       "then glMapBufferRangeEXT and a memcpy out of the "
 		       "mapping, using GL_NV_pixel_buffer_object";
+	case CAPTURE_PBO_UNALIGNED:
+		return "glReadPixels of the crop into a pixel pack buffer at a "
+		       "one byte offset, which keeps Mesa off its shader based "
+		       "pack buffer download, then glMapBufferRangeEXT and a "
+		       "memcpy out of the mapping, using "
+		       "GL_NV_pixel_buffer_object";
 	default:
 		return "unknown";
 	}

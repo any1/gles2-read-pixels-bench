@@ -10,12 +10,15 @@
  * whole into a malloc'd buffer, either straight through glReadPixels or by
  * way of pixel pack buffers, synchronously or with two of them alternating so
  * that the frame being copied out is the one read back on the previous
- * iteration.
+ * iteration.  The unaligned variants read back to a one byte offset inside
+ * the pixel pack buffer, see pbo_init() in capture.c for why.
  */
 enum ff_method {
 	FF_READPIXELS,
 	FF_PBO_SYNC,
 	FF_PBO_ASYNC,
+	FF_PBO_SYNC_UNALIGNED,
+	FF_PBO_ASYNC_UNALIGNED,
 	FF_METHOD_COUNT
 };
 
@@ -38,6 +41,7 @@ struct ff_capture {
 	size_t frame_bytes;
 	GLuint pbo[2];
 	int npbo;
+	size_t offset;		/* where the frame starts inside a pbo */
 	int cur;		/* the pbo the next readback goes into */
 	bool pending;		/* the other pbo holds a frame not yet copied */
 	unsigned char *dst;	/* malloc'd destination, the thing we time */
@@ -64,6 +68,10 @@ static const char *ff_method_name(enum ff_method m)
 		return "pbo-sync";
 	case FF_PBO_ASYNC:
 		return "pbo-async";
+	case FF_PBO_SYNC_UNALIGNED:
+		return "pbo-sync-unaligned";
+	case FF_PBO_ASYNC_UNALIGNED:
+		return "pbo-async-unaligned";
 	default:
 		return "unknown";
 	}
@@ -83,6 +91,14 @@ static const char *ff_method_description(enum ff_method m)
 		return "full-frame glReadPixels into one of two alternating "
 		       "pixel pack buffers, then mapping the other one, which "
 		       "holds the previous frame, and a memcpy out of it";
+	case FF_PBO_SYNC_UNALIGNED:
+		return "as pbo-sync, but reading back to a one byte offset "
+		       "inside the pixel pack buffer, which keeps Mesa off its "
+		       "shader based pack buffer download";
+	case FF_PBO_ASYNC_UNALIGNED:
+		return "as pbo-async, but reading back to a one byte offset "
+		       "inside the pixel pack buffers, which keeps Mesa off its "
+		       "shader based pack buffer download";
 	default:
 		return "unknown";
 	}
@@ -127,6 +143,14 @@ static void ff_capture_init(struct ff_capture *c, enum ff_method m,
 	case FF_PBO_ASYNC:
 		c->npbo = 2;
 		break;
+	case FF_PBO_SYNC_UNALIGNED:
+		c->npbo = 1;
+		c->offset = 1;
+		break;
+	case FF_PBO_ASYNC_UNALIGNED:
+		c->npbo = 2;
+		c->offset = 1;
+		break;
 	default:
 		die("unknown full-frame method");
 	}
@@ -144,7 +168,7 @@ static void ff_capture_init(struct ff_capture *c, enum ff_method m,
 		 * frame.
 		 */
 		glBufferData(GL_PIXEL_PACK_BUFFER_NV,
-			     (GLsizeiptr)c->frame_bytes, NULL,
+			     (GLsizeiptr)(c->frame_bytes + c->offset), NULL,
 			     GL_DYNAMIC_DRAW);
 	}
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
@@ -163,10 +187,11 @@ static void ff_capture_fini(struct ff_capture *c)
  * With a pixel pack buffer bound the last glReadPixels argument is an offset
  * into that buffer rather than a client pointer.
  */
-static void pbo_read(GLuint pbo, int width, int height)
+static void pbo_read(const struct ff_capture *c, GLuint pbo)
 {
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, pbo);
-	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glReadPixels(0, 0, c->width, c->height, GL_RGBA, GL_UNSIGNED_BYTE,
+		     (void *)(uintptr_t)c->offset);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
 }
 
@@ -180,7 +205,7 @@ static void pbo_copy_out(struct ff_capture *c, GLuint pbo)
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, pbo);
 
-	map = glMapBufferRangeEXT(GL_PIXEL_PACK_BUFFER_NV, 0,
+	map = glMapBufferRangeEXT(GL_PIXEL_PACK_BUFFER_NV, (GLintptr)c->offset,
 				  (GLsizeiptr)c->frame_bytes,
 				  GL_MAP_READ_BIT_EXT);
 	if (!map)
@@ -220,12 +245,14 @@ static bool ff_capture_frame(struct ff_capture *c)
 		break;
 
 	case FF_PBO_SYNC:
-		pbo_read(c->pbo[0], c->width, c->height);
+	case FF_PBO_SYNC_UNALIGNED:
+		pbo_read(c, c->pbo[0]);
 		pbo_copy_out(c, c->pbo[0]);
 		break;
 
 	case FF_PBO_ASYNC:
-		pbo_read(c->pbo[c->cur], c->width, c->height);
+	case FF_PBO_ASYNC_UNALIGNED:
+		pbo_read(c, c->pbo[c->cur]);
 
 		had_pending = c->pending;
 		c->pending = true;

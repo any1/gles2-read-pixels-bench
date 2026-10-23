@@ -93,6 +93,31 @@ glUnmapBufferOES(GL_PIXEL_PACK_BUFFER_NV);
 glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);''',
         'free': 'glDeleteBuffers(1, &pbo);',
     },
+    'pbo-unaligned': {
+        'extensions': [
+            'GL_NV_pixel_buffer_object',
+            'GL_EXT_map_buffer_range',
+            'GL_OES_mapbuffer',
+        ],
+        'decl': 'GLuint pbo;\nvoid *map;',
+        'alloc': '''\
+glGenBuffers(1, &pbo);
+glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, pbo);
+glBufferData(GL_PIXEL_PACK_BUFFER_NV, w * h * 4 + 1, NULL,
+	     GL_DYNAMIC_DRAW);
+glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);''',
+        'capture': '''\
+/* a one byte offset keeps Mesa off its shader based pbo download */
+glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, pbo);
+glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, (void *)1);
+
+map = glMapBufferRangeEXT(GL_PIXEL_PACK_BUFFER_NV, 1, w * h * 4,
+			  GL_MAP_READ_BIT_EXT);
+memcpy(dst, map, w * h * 4);
+glUnmapBufferOES(GL_PIXEL_PACK_BUFFER_NV);
+glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);''',
+        'free': 'glDeleteBuffers(1, &pbo);',
+    },
 }
 
 C_TOKENS = re.compile(r'''

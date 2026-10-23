@@ -92,8 +92,18 @@ static void direct_init(struct capture *c)
  * The readback lands in a pixel pack buffer owned by the GL, which is then
  * mapped and copied out.  GL_OES_mapbuffer on its own only offers write-only
  * mappings, so reading the result back needs glMapBufferRangeEXT.
+ *
+ * The unaligned variant places the crop one byte into the buffer, which is
+ * legal for GL_UNSIGNED_BYTE data.  It matters to Mesa: with a pack buffer
+ * bound, its state tracker first tries to fill the buffer with a fragment
+ * shader doing one image store per pixel, regardless of whether the format
+ * matches the storage format.  On a discrete GPU that is a stream of
+ * scattered 4 byte writes into host memory across PCIe, and it is slower than
+ * every other method by an order of magnitude.  An offset that is not a
+ * multiple of the pixel size is rejected by that path, and the readback falls
+ * through to the same blit plus memcpy that the non-PBO methods get.
  */
-static void pbo_init(void)
+static void pbo_init(struct capture *c)
 {
 	if (!epoxy_has_gl_extension("GL_NV_pixel_buffer_object"))
 		die("the pbo method needs GL_NV_pixel_buffer_object");
@@ -101,6 +111,9 @@ static void pbo_init(void)
 		die("the pbo method needs GL_EXT_map_buffer_range to map for reading");
 	if (!epoxy_has_gl_extension("GL_OES_mapbuffer"))
 		die("the pbo method needs GL_OES_mapbuffer for glUnmapBufferOES");
+
+	if (c->method == CAPTURE_PBO_UNALIGNED)
+		c->pbo_offset = 1;
 }
 
 static void pbo_alloc(struct capture *c)
@@ -113,7 +126,8 @@ static void pbo_alloc(struct capture *c)
 	 * adds none, so DYNAMIC_DRAW is the closest legal description of a
 	 * buffer rewritten every frame.  STREAM_READ is an ES 3.0 token.
 	 */
-	glBufferData(GL_PIXEL_PACK_BUFFER_NV, (GLsizeiptr)c->frame_bytes, NULL,
+	glBufferData(GL_PIXEL_PACK_BUFFER_NV,
+		     (GLsizeiptr)(c->frame_bytes + c->pbo_offset), NULL,
 		     GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
 
@@ -139,6 +153,7 @@ static void staging_alloc(struct capture *c)
 		c->staging = xmalloc((size_t)c->fb_width * c->fb_height * 4);
 		break;
 	case CAPTURE_PBO:
+	case CAPTURE_PBO_UNALIGNED:
 		pbo_alloc(c);
 		break;
 	default:
@@ -171,6 +186,7 @@ bool method_has_staging(enum capture_method m)
 	case CAPTURE_GPU_STAGING:
 	case CAPTURE_CPU_STAGING:
 	case CAPTURE_PBO:
+	case CAPTURE_PBO_UNALIGNED:
 		return true;
 	default:
 		return false;
@@ -215,7 +231,8 @@ void capture_init(struct capture *c, const struct test *t,
 		direct_init(c);
 		break;
 	case CAPTURE_PBO:
-		pbo_init();
+	case CAPTURE_PBO_UNALIGNED:
+		pbo_init(c);
 		break;
 	default:
 		die("unknown capture method");
@@ -295,6 +312,7 @@ void capture_frame(struct capture *c)
 		break;
 
 	case CAPTURE_PBO:
+	case CAPTURE_PBO_UNALIGNED:
 		/*
 		 * With a pixel pack buffer bound the last glReadPixels
 		 * argument is an offset into that buffer rather than a
@@ -302,9 +320,10 @@ void capture_frame(struct capture *c)
 		 */
 		glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, c->pbo);
 		glReadPixels(c->x, c->y, c->w, c->h, GL_RGBA,
-			     GL_UNSIGNED_BYTE, NULL);
+			     GL_UNSIGNED_BYTE, (void *)(uintptr_t)c->pbo_offset);
 
-		map = glMapBufferRangeEXT(GL_PIXEL_PACK_BUFFER_NV, 0,
+		map = glMapBufferRangeEXT(GL_PIXEL_PACK_BUFFER_NV,
+					  (GLintptr)c->pbo_offset,
 					  (GLsizeiptr)c->frame_bytes,
 					  GL_MAP_READ_BIT_EXT);
 		if (!map)

@@ -15,7 +15,9 @@
  * which offers no pixel pack buffers, no buffer mapping and no packing
  * skip/row-length state.  CAPTURE_DIRECT needs GL_NV_pack_subimage, because
  * ES 2.0 core PixelStore only has PACK_ALIGNMENT and so cannot describe a
- * destination row stride wider than the region being read.
+ * destination row stride wider than the region being read.  CAPTURE_PBO and
+ * CAPTURE_PBO_UNALIGNED need GL_NV_pixel_buffer_object and differ only in
+ * where the crop lands inside the pack buffer, see pbo_init() in capture.c.
  */
 enum capture_method {
 	CAPTURE_GPU_STAGING,
@@ -23,6 +25,7 @@ enum capture_method {
 	CAPTURE_PER_ROW,
 	CAPTURE_DIRECT,
 	CAPTURE_PBO,
+	CAPTURE_PBO_UNALIGNED,
 	CAPTURE_METHOD_COUNT
 };
 
@@ -106,6 +109,7 @@ struct capture {
 	GLuint stage_tex;	/* GPU staging target */
 	GLuint stage_fbo;
 	GLuint pbo;		/* pixel pack buffer, mapped to read back */
+	size_t pbo_offset;	/* where the crop starts inside the pbo */
 	unsigned char *dst;	/* malloc'd destination, the thing we time */
 	unsigned char *staging;	/* full frame CPU staging buffer */
 	size_t dst_size;
