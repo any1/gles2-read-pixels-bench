@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <json-c/json.h>
-
 #include "bench.h"
 
 #define CROP_CENTRED (-1)
@@ -16,19 +14,6 @@ struct result {
 	struct load load;
 	char output[512];
 };
-
-/*
- * json-c serialises doubles with a fixed global format, which is not much use
- * when the same document holds both durations and frame rates.
- * json_object_new_double_s() lets each value carry its own text.
- */
-static void add_double(json_object *obj, const char *key, double v, int prec)
-{
-	char buf[64];
-
-	snprintf(buf, sizeof(buf), "%.*f", prec, v);
-	json_object_object_add(obj, key, json_object_new_double_s(v, buf));
-}
 
 static void usage(FILE *f, const char *argv0)
 {
@@ -302,44 +287,11 @@ static void run_test(struct renderer *r, const struct test *t,
 	log_msg("  %llu frames in %.3f s (%.1f fps)",
 		(unsigned long long)res->frames, res->elapsed,
 		res->frames / res->elapsed);
-	log_msg("  cpu load %.1f%% of %d cpus", res->load.cpu_pct,
-		res->load.cpus);
-	if (!res->load.has_gpu)
-		log_msg("  gpu load unknown, no DRM client usage stats");
-	for (i = 0; i < res->load.n_engines; i++)
-		log_msg("  gpu load %s %.1f%%", res->load.engines[i].name,
-			res->load.engines[i].pct);
+	log_load(&res->load);
 
 	if (mj)
 		mjpeg_close(mj);
 	capture_fini(&cap);
-}
-
-static json_object *load_json(const struct load *l, json_object *res)
-{
-	json_object *cpu = json_object_new_object();
-	json_object *gpu, *engines;
-	int i;
-
-	add_double(cpu, "load_pct", l->cpu_pct, 2);
-	add_double(cpu, "time_s", l->cpu_s, 6);
-	json_object_object_add(cpu, "cpus", json_object_new_int(l->cpus));
-	json_object_object_add(res, "cpu", cpu);
-
-	/* no DRM usage stats, so nothing to say about the GPU */
-	if (!l->has_gpu) {
-		json_object_object_add(res, "gpu", NULL);
-		return res;
-	}
-
-	gpu = json_object_new_object();
-	engines = json_object_new_object();
-	add_double(gpu, "load_pct", l->gpu_pct, 2);
-	for (i = 0; i < l->n_engines; i++)
-		add_double(engines, l->engines[i].name, l->engines[i].pct, 2);
-	json_object_object_add(gpu, "engines", engines);
-	json_object_object_add(res, "gpu", gpu);
-	return res;
 }
 
 static json_object *result_json(const struct result *res)
@@ -358,10 +310,10 @@ static json_object *result_json(const struct result *res)
 		json_object_new_string(method_description(res->test.method)));
 	json_object_object_add(j, "frames",
 			       json_object_new_int64((int64_t)res->frames));
-	add_double(j, "elapsed_s", res->elapsed, 6);
-	add_double(j, "fps", res->elapsed > 0.0 ?
-		   res->frames / res->elapsed : 0.0, 2);
-	load_json(&res->load, j);
+	json_add_double(j, "elapsed_s", res->elapsed, 6);
+	json_add_double(j, "fps", res->elapsed > 0.0 ?
+			res->frames / res->elapsed : 0.0, 2);
+	json_add_load(j, &res->load);
 
 	if (res->output[0])
 		json_object_object_add(j, "output",
@@ -384,7 +336,7 @@ static json_object *config_json(const struct options *o)
 	json_object_object_add(crop, "height", json_object_new_int(o->crop_h));
 	json_object_object_add(j, "crop", crop);
 
-	add_double(j, "duration_s", o->duration, 3);
+	json_add_double(j, "duration_s", o->duration, 3);
 	json_object_object_add(j, "warmup_frames",
 			       json_object_new_int(o->warmup));
 	json_object_object_add(j, "format", json_object_new_string("RGBA8888"));
@@ -392,22 +344,6 @@ static json_object *config_json(const struct options *o)
 	if (o->encode)
 		json_object_object_add(j, "jpeg_quality",
 				       json_object_new_int(o->quality));
-	return j;
-}
-
-static json_object *gl_json(void)
-{
-	json_object *j = json_object_new_object();
-
-	json_object_object_add(j, "vendor",
-		json_object_new_string((const char *)glGetString(GL_VENDOR)));
-	json_object_object_add(j, "renderer",
-		json_object_new_string((const char *)glGetString(GL_RENDERER)));
-	json_object_object_add(j, "version",
-		json_object_new_string((const char *)glGetString(GL_VERSION)));
-	json_object_object_add(j, "shading_language_version",
-		json_object_new_string((const char *)
-			glGetString(GL_SHADING_LANGUAGE_VERSION)));
 	return j;
 }
 
@@ -483,7 +419,7 @@ int main(int argc, char **argv)
 		(unsigned long long)capture_get_checksum());
 
 	root = json_object_new_object();
-	json_object_object_add(root, "gl", gl_json());
+	json_object_object_add(root, "gl", json_gl_info());
 	json_object_object_add(root, "config", config_json(&opts));
 
 	array = json_object_new_array();

@@ -7,6 +7,7 @@
 
 #include <epoxy/egl.h>
 #include <epoxy/gl.h>
+#include <json-c/json.h>
 
 /*
  * The ways of getting a cropped region of the rendered frame into a buffer
@@ -59,6 +60,8 @@ void log_msg(const char *fmt, ...);
 void die(const char *fmt, ...);
 double now_s(void);
 void gl_check(const char *what);
+
+/* tests.c */
 const char *method_name(enum capture_method m);
 const char *method_description(enum capture_method m);
 int test_list(struct test *tests);
@@ -166,6 +169,12 @@ struct load {
 void load_sample(struct load_sample *s);
 void load_diff(const struct load_sample *a, const struct load_sample *b,
 	       struct load *out);
+
+/* report.c */
+void json_add_double(json_object *obj, const char *key, double v, int prec);
+void json_add_load(json_object *res, const struct load *l);
+json_object *json_gl_info(void);
+void log_load(const struct load *l);
 
 /* mjpeg.c */
 struct mjpeg;

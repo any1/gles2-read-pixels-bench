@@ -18,15 +18,29 @@ deps = [
   cc.find_library('m', required: false),
 ]
 
+common = static_library('common',
+  files(
+    'src/gl_context.c',
+    'src/render.c',
+    'src/load.c',
+    'src/mjpeg.c',
+    'src/report.c',
+    'src/util.c',
+  ),
+  dependencies: deps)
+
 executable('gles2-read-pixels-bench',
   files(
     'src/main.c',
-    'src/gl_context.c',
-    'src/render.c',
     'src/capture.c',
-    'src/load.c',
-    'src/mjpeg.c',
-    'src/util.c',
+    'src/tests.c',
   ),
+  link_with: common,
+  dependencies: deps,
+  install: true)
+
+executable('gles2-full-frame-bench',
+  files('src/full_frame.c'),
+  link_with: common,
   dependencies: deps,
   install: true)
