@@ -18,6 +18,8 @@
  * destination row stride wider than the region being read.  CAPTURE_PBO and
  * CAPTURE_PBO_UNALIGNED need GL_NV_pixel_buffer_object and differ only in
  * where the crop lands inside the pack buffer, see pbo_init() in capture.c.
+ * CAPTURE_UDMABUF does not read pixels back at all: the frame is rendered
+ * into host memory the process owns, see udmabuf_init() in capture.c.
  */
 enum capture_method {
 	CAPTURE_GPU_STAGING,
@@ -26,6 +28,7 @@ enum capture_method {
 	CAPTURE_DIRECT,
 	CAPTURE_PBO,
 	CAPTURE_PBO_UNALIGNED,
+	CAPTURE_UDMABUF,
 	CAPTURE_METHOD_COUNT
 };
 
@@ -127,12 +130,26 @@ struct capture {
 	bool realloc_staging;	/* staging lives for one capture only */
 	bool staging_checked;	/* staging has been validated once already */
 
+	/*
+	 * CAPTURE_UDMABUF renders into a buffer of its own in place of the
+	 * renderer's framebuffer, which is put back at fini.
+	 */
+	struct renderer *renderer;
+	GLuint saved_fbo;
+	GLuint udma_fbo;
+	GLuint udma_rb;
+	EGLImageKHR image;
+	int memfd;
+	int dmabuf;
+	unsigned char *map;	/* the whole frame, as the CPU sees it */
+	size_t map_size;
+
 	uint64_t completed;
 };
 
 bool method_has_staging(enum capture_method m);
 void capture_init(struct capture *c, const struct test *t,
-		  const struct options *o, const struct renderer *r);
+		  const struct options *o, struct renderer *r);
 void capture_frame(struct capture *c);
 void capture_fini(struct capture *c);
 uint64_t capture_get_checksum(void);
