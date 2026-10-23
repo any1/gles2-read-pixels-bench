@@ -17,8 +17,10 @@
  * /proc/self/fdinfo for every open DRM file: drm-engine-<name> is the time
  * in ns that engine spent busy with this client's work, and
  * drm-engine-capacity-<name> says how many instances of the engine there are
- * when there is more than one.  Duplicated file descriptors show the same
- * client, so each drm-client-id is only counted once.
+ * when there is more than one.  The xe driver reports drm-cycles-<name> and
+ * drm-total-cycles-<name> instead, the busy and the elapsed ticks of a GPU
+ * clock, so the load is their ratio.  Duplicated file descriptors show the
+ * same client, so each drm-client-id is only counted once.
  */
 
 static int cpu_count(void)
@@ -101,6 +103,19 @@ static bool read_fdinfo(struct load_sample *s, const char *fd,
 			e = engine_get(s, name);
 			if (e)
 				e->busy_ns += value;
+		} else if (is_drm &&
+			   sscanf(line, "drm-total-cycles-%31[^:]: %llu",
+				  name, &value) == 2) {
+			/* a shared clock, the same for every client */
+			e = engine_get(s, name);
+			if (e)
+				e->total_cycles = value;
+		} else if (is_drm &&
+			   sscanf(line, "drm-cycles-%31[^:]: %llu",
+				  name, &value) == 2) {
+			e = engine_get(s, name);
+			if (e)
+				e->cycles += value;
 		}
 	}
 
@@ -180,11 +195,25 @@ void load_diff(const struct load_sample *a, const struct load_sample *b,
 	for (i = 0; i < b->n_engines; i++) {
 		eb = &b->engines[i];
 		ea = engine_find(a, eb->name);
-		busy = eb->busy_ns;
-		if (ea)
-			busy = busy > ea->busy_ns ? busy - ea->busy_ns : 0;
 
-		pct = 100.0 * (busy * 1e-9) / (wall * eb->capacity);
+		if (eb->total_cycles) {
+			uint64_t total = eb->total_cycles;
+
+			busy = eb->cycles;
+			if (ea) {
+				busy = busy > ea->cycles ? busy - ea->cycles : 0;
+				total = total > ea->total_cycles ?
+					total - ea->total_cycles : 0;
+			}
+			pct = total ? 100.0 * busy / ((double)total *
+						      eb->capacity) : 0.0;
+		} else {
+			busy = eb->busy_ns;
+			if (ea)
+				busy = busy > ea->busy_ns ?
+					busy - ea->busy_ns : 0;
+			pct = 100.0 * (busy * 1e-9) / (wall * eb->capacity);
+		}
 		if (pct > 100.0)
 			pct = 100.0;
 

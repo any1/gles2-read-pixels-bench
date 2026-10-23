@@ -138,9 +138,16 @@ uint64_t capture_get_checksum(void);
 #define LOAD_ENGINE_NAME_MAX 32
 #define LOAD_CLIENT_MAX 16
 
+/*
+ * Engine busy time comes in one of two forms: i915 and most drivers publish
+ * drm-engine-<name> as busy ns, xe publishes drm-cycles-<name> next to the
+ * drm-total-cycles-<name> that elapsed on the same clock.
+ */
 struct load_engine {
 	char name[LOAD_ENGINE_NAME_MAX];
 	uint64_t busy_ns;
+	uint64_t cycles;
+	uint64_t total_cycles;
 	unsigned capacity;
 };
 
