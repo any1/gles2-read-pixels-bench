@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1148" viewBox="0 0 960 1148" role="img" aria-label="fps, CPU and GPU load per test">
+<title>fps, CPU and GPU load per test</title>
+<rect x="0.5" y="0.5" width="959" height="1147" rx="6" fill="#1a1a19" stroke="#353533"/>
+<line x1="206.28" y1="16" x2="206.28" y2="1132.00" stroke="#52514e"/>
+<text x="198.28" y="33.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">udmabuf</text>
+<path d="M207.28,22.00H867.00A4.00,4.00 0 0 1 871.00,26.00V40.00A4.00,4.00 0 0 1 867.00,44.00H207.28Z" fill="#3987e5"/>
+<text x="879.00" y="33.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">200.9</text>
+<text x="198.28" y="58.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,55.00H344.13A3.00,3.00 0 0 1 347.13,58.00V58.00A3.00,3.00 0 0 1 344.13,61.00H207.28Z" fill="#d95926"/>
+<text x="355.13" y="58.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">21.1%</text>
+<text x="198.28" y="74.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,71.00H302.71A3.00,3.00 0 0 1 305.71,74.00V74.00A3.00,3.00 0 0 1 302.71,77.00H207.28Z" fill="#199e70"/>
+<text x="313.71" y="74.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">14.8%</text>
+<text x="198.28" y="90.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,87.00H868.00A3.00,3.00 0 0 1 871.00,90.00V90.00A3.00,3.00 0 0 1 868.00,93.00H207.28Z" fill="#c98500"/>
+<text x="879.00" y="90.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">5.60 fps/%</text>
+<text x="198.28" y="127.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">gbm</text>
+<path d="M207.28,116.00H595.40A4.00,4.00 0 0 1 599.40,120.00V134.00A4.00,4.00 0 0 1 595.40,138.00H207.28Z" fill="#3987e5"/>
+<text x="607.40" y="127.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">118.7</text>
+<text x="198.28" y="152.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,149.00H354.88A3.00,3.00 0 0 1 357.88,152.00V152.00A3.00,3.00 0 0 1 354.88,155.00H207.28Z" fill="#d95926"/>
+<text x="365.88" y="152.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">22.7%</text>
+<text x="198.28" y="168.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,165.00H262.49A3.00,3.00 0 0 1 265.49,168.00V168.00A3.00,3.00 0 0 1 262.49,171.00H207.28Z" fill="#199e70"/>
+<text x="273.49" y="168.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">8.8%</text>
+<text x="198.28" y="184.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,181.00H651.74A3.00,3.00 0 0 1 654.74,184.00V184.00A3.00,3.00 0 0 1 651.74,187.00H207.28Z" fill="#c98500"/>
+<text x="662.74" y="184.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">3.77 fps/%</text>
+<text x="198.28" y="221.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">gpu-staging-realloc</text>
+<path d="M207.28,210.00H563.09A4.00,4.00 0 0 1 567.09,214.00V228.00A4.00,4.00 0 0 1 563.09,232.00H207.28Z" fill="#3987e5"/>
+<text x="575.09" y="221.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">108.9</text>
+<text x="198.28" y="246.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,243.00H343.79A3.00,3.00 0 0 1 346.79,246.00V246.00A3.00,3.00 0 0 1 343.79,249.00H207.28Z" fill="#d95926"/>
+<text x="354.79" y="246.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">21.0%</text>
+<text x="198.28" y="262.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,259.00H307.29A3.00,3.00 0 0 1 310.29,262.00V262.00A3.00,3.00 0 0 1 307.29,265.00H207.28Z" fill="#199e70"/>
+<text x="318.29" y="262.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">15.5%</text>
+<text x="198.28" y="278.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,275.00H557.79A3.00,3.00 0 0 1 560.79,278.00V278.00A3.00,3.00 0 0 1 557.79,281.00H207.28Z" fill="#c98500"/>
+<text x="568.79" y="278.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.98 fps/%</text>
+<text x="198.28" y="315.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">direct</text>
+<path d="M207.28,304.00H553.24A4.00,4.00 0 0 1 557.24,308.00V322.00A4.00,4.00 0 0 1 553.24,326.00H207.28Z" fill="#3987e5"/>
+<text x="565.24" y="315.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">105.9</text>
+<text x="198.28" y="340.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,337.00H346.38A3.00,3.00 0 0 1 349.38,340.00V340.00A3.00,3.00 0 0 1 346.38,343.00H207.28Z" fill="#d95926"/>
+<text x="357.38" y="340.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">21.4%</text>
+<text x="198.28" y="356.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,353.00H295.08A3.00,3.00 0 0 1 298.08,356.00V356.00A3.00,3.00 0 0 1 295.08,359.00H207.28Z" fill="#199e70"/>
+<text x="306.08" y="356.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">13.7%</text>
+<text x="198.28" y="372.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,369.00H562.32A3.00,3.00 0 0 1 565.32,372.00V372.00A3.00,3.00 0 0 1 562.32,375.00H207.28Z" fill="#c98500"/>
+<text x="573.32" y="372.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">3.02 fps/%</text>
+<text x="198.28" y="409.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">gpu-staging</text>
+<path d="M207.28,398.00H550.60A4.00,4.00 0 0 1 554.60,402.00V416.00A4.00,4.00 0 0 1 550.60,420.00H207.28Z" fill="#3987e5"/>
+<text x="562.60" y="409.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">105.1</text>
+<text x="198.28" y="434.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,431.00H340.48A3.00,3.00 0 0 1 343.48,434.00V434.00A3.00,3.00 0 0 1 340.48,437.00H207.28Z" fill="#d95926"/>
+<text x="351.48" y="434.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">20.5%</text>
+<text x="198.28" y="450.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,447.00H321.23A3.00,3.00 0 0 1 324.23,450.00V450.00A3.00,3.00 0 0 1 321.23,453.00H207.28Z" fill="#199e70"/>
+<text x="332.23" y="450.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">17.6%</text>
+<text x="198.28" y="466.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,463.00H531.20A3.00,3.00 0 0 1 534.20,466.00V466.00A3.00,3.00 0 0 1 531.20,469.00H207.28Z" fill="#c98500"/>
+<text x="542.20" y="466.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.76 fps/%</text>
+<text x="198.28" y="503.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">pbo-unaligned</text>
+<path d="M207.28,492.00H497.71A4.00,4.00 0 0 1 501.71,496.00V510.00A4.00,4.00 0 0 1 497.71,514.00H207.28Z" fill="#3987e5"/>
+<text x="509.71" y="503.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">89.1</text>
+<text x="198.28" y="528.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,525.00H350.10A3.00,3.00 0 0 1 353.10,528.00V528.00A3.00,3.00 0 0 1 350.10,531.00H207.28Z" fill="#d95926"/>
+<text x="361.10" y="528.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">22.0%</text>
+<text x="198.28" y="544.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,541.00H280.81A3.00,3.00 0 0 1 283.81,544.00V544.00A3.00,3.00 0 0 1 280.81,547.00H207.28Z" fill="#199e70"/>
+<text x="291.81" y="544.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">11.5%</text>
+<text x="198.28" y="560.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,557.00H519.80A3.00,3.00 0 0 1 522.80,560.00V560.00A3.00,3.00 0 0 1 519.80,563.00H207.28Z" fill="#c98500"/>
+<text x="530.80" y="560.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.66 fps/%</text>
+<text x="198.28" y="597.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">pbo-unaligned-realloc</text>
+<path d="M207.28,586.00H497.38A4.00,4.00 0 0 1 501.38,590.00V604.00A4.00,4.00 0 0 1 497.38,608.00H207.28Z" fill="#3987e5"/>
+<text x="509.38" y="597.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">89.0</text>
+<text x="198.28" y="622.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,619.00H350.36A3.00,3.00 0 0 1 353.36,622.00V622.00A3.00,3.00 0 0 1 350.36,625.00H207.28Z" fill="#d95926"/>
+<text x="361.36" y="622.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">22.0%</text>
+<text x="198.28" y="638.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,635.00H280.67A3.00,3.00 0 0 1 283.67,638.00V638.00A3.00,3.00 0 0 1 280.67,641.00H207.28Z" fill="#199e70"/>
+<text x="291.67" y="638.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">11.5%</text>
+<text x="198.28" y="654.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,651.00H519.26A3.00,3.00 0 0 1 522.26,654.00V654.00A3.00,3.00 0 0 1 519.26,657.00H207.28Z" fill="#c98500"/>
+<text x="530.26" y="654.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.66 fps/%</text>
+<text x="198.28" y="691.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">pbo-realloc</text>
+<path d="M207.28,680.00H497.35A4.00,4.00 0 0 1 501.35,684.00V698.00A4.00,4.00 0 0 1 497.35,702.00H207.28Z" fill="#3987e5"/>
+<text x="509.35" y="691.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">89.0</text>
+<text x="198.28" y="716.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,713.00H350.43A3.00,3.00 0 0 1 353.43,716.00V716.00A3.00,3.00 0 0 1 350.43,719.00H207.28Z" fill="#d95926"/>
+<text x="361.43" y="716.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">22.0%</text>
+<text x="198.28" y="732.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,729.00H280.74A3.00,3.00 0 0 1 283.74,732.00V732.00A3.00,3.00 0 0 1 280.74,735.00H207.28Z" fill="#199e70"/>
+<text x="291.74" y="732.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">11.5%</text>
+<text x="198.28" y="748.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,745.00H519.04A3.00,3.00 0 0 1 522.04,748.00V748.00A3.00,3.00 0 0 1 519.04,751.00H207.28Z" fill="#c98500"/>
+<text x="530.04" y="748.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.65 fps/%</text>
+<text x="198.28" y="785.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">pbo</text>
+<path d="M207.28,774.00H496.59A4.00,4.00 0 0 1 500.59,778.00V792.00A4.00,4.00 0 0 1 496.59,796.00H207.28Z" fill="#3987e5"/>
+<text x="508.59" y="785.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">88.8</text>
+<text x="198.28" y="810.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,807.00H350.50A3.00,3.00 0 0 1 353.50,810.00V810.00A3.00,3.00 0 0 1 350.50,813.00H207.28Z" fill="#d95926"/>
+<text x="361.50" y="810.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">22.0%</text>
+<text x="198.28" y="826.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,823.00H280.48A3.00,3.00 0 0 1 283.48,826.00V826.00A3.00,3.00 0 0 1 280.48,829.00H207.28Z" fill="#199e70"/>
+<text x="291.48" y="826.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">11.5%</text>
+<text x="198.28" y="842.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,839.00H518.50A3.00,3.00 0 0 1 521.50,842.00V842.00A3.00,3.00 0 0 1 518.50,845.00H207.28Z" fill="#c98500"/>
+<text x="529.50" y="842.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.65 fps/%</text>
+<text x="198.28" y="879.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">cpu-staging</text>
+<path d="M207.28,868.00H417.49A4.00,4.00 0 0 1 421.49,872.00V886.00A4.00,4.00 0 0 1 417.49,890.00H207.28Z" fill="#3987e5"/>
+<text x="429.49" y="879.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">64.8</text>
+<text x="198.28" y="904.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,901.00H361.78A3.00,3.00 0 0 1 364.78,904.00V904.00A3.00,3.00 0 0 1 361.78,907.00H207.28Z" fill="#d95926"/>
+<text x="372.78" y="904.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">23.7%</text>
+<text x="198.28" y="920.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,917.00H236.01A3.00,3.00 0 0 1 239.01,920.00V920.00A3.00,3.00 0 0 1 236.01,923.00H207.28Z" fill="#199e70"/>
+<text x="247.01" y="920.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">4.8%</text>
+<text x="198.28" y="936.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,933.00H474.02A3.00,3.00 0 0 1 477.02,936.00V936.00A3.00,3.00 0 0 1 474.02,939.00H207.28Z" fill="#c98500"/>
+<text x="485.02" y="936.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.27 fps/%</text>
+<text x="198.28" y="973.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">cpu-staging-realloc</text>
+<path d="M207.28,962.00H396.85A4.00,4.00 0 0 1 400.85,966.00V980.00A4.00,4.00 0 0 1 396.85,984.00H207.28Z" fill="#3987e5"/>
+<text x="408.85" y="973.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">58.6</text>
+<text x="198.28" y="998.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,995.00H362.64A3.00,3.00 0 0 1 365.64,998.00V998.00A3.00,3.00 0 0 1 362.64,1001.00H207.28Z" fill="#d95926"/>
+<text x="373.64" y="998.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">23.9%</text>
+<text x="198.28" y="1014.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,1011.00H232.95A3.00,3.00 0 0 1 235.95,1014.00V1014.00A3.00,3.00 0 0 1 232.95,1017.00H207.28Z" fill="#199e70"/>
+<text x="243.95" y="1014.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">4.3%</text>
+<text x="198.28" y="1030.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,1027.00H450.87A3.00,3.00 0 0 1 453.87,1030.00V1030.00A3.00,3.00 0 0 1 450.87,1033.00H207.28Z" fill="#c98500"/>
+<text x="461.87" y="1030.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.08 fps/%</text>
+<text x="198.28" y="1067.00" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#f0efec" text-anchor="end" dominant-baseline="central">per-row</text>
+<path d="M207.28,1056.00H255.81A4.00,4.00 0 0 1 259.81,1060.00V1074.00A4.00,4.00 0 0 1 255.81,1078.00H207.28Z" fill="#3987e5"/>
+<text x="267.81" y="1067.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">15.9</text>
+<text x="198.28" y="1092.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">CPU</text>
+<path d="M207.28,1089.00H366.69A3.00,3.00 0 0 1 369.69,1092.00V1092.00A3.00,3.00 0 0 1 366.69,1095.00H207.28Z" fill="#d95926"/>
+<text x="377.69" y="1092.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">24.5%</text>
+<text x="198.28" y="1108.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">GPU</text>
+<path d="M207.28,1105.00H217.89A3.00,3.00 0 0 1 220.89,1108.00V1108.00A3.00,3.00 0 0 1 217.89,1111.00H207.28Z" fill="#199e70"/>
+<text x="228.89" y="1108.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">2.0%</text>
+<text x="198.28" y="1124.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" text-anchor="end" dominant-baseline="central">fps / load</text>
+<path d="M207.28,1121.00H275.39A3.00,3.00 0 0 1 278.39,1124.00V1124.00A3.00,3.00 0 0 1 275.39,1127.00H207.28Z" fill="#c98500"/>
+<text x="286.39" y="1124.00" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#c3c2b7" font-variant-numeric="tabular-nums" dominant-baseline="central">0.60 fps/%</text>
+</svg>

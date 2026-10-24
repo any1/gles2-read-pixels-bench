@@ -1,2 +1,3 @@
 /build/
 *.mjpg
+__pycache__

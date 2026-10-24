@@ -7,13 +7,12 @@
 - **duration**: 1 s
 - **warmup**: 10 frames
 - **format**: RGBA8888
-- **mjpeg**: q85
 - **renderer**: Mesa Intel(R) UHD Graphics (CML GT2)
 - **version**: OpenGL ES 3.2 Mesa 26.2.5-arch1.1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/f64882dcb877b06daf6a7cef26fff63e74e9a2b0-dark.svg">
-  <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/f64882dcb877b06daf6a7cef26fff63e74e9a2b0-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/815b557a8a5ca7c424259cc58d360ae3cf80baf4-dark.svg">
+  <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/815b557a8a5ca7c424259cc58d360ae3cf80baf4-light.svg">
 </picture>
 
 ## rpi5
@@ -23,13 +22,12 @@
 - **duration**: 1 s
 - **warmup**: 10 frames
 - **format**: RGBA8888
-- **mjpeg**: q85
 - **renderer**: V3D 7.1.7.0
 - **version**: OpenGL ES 3.1 Mesa 26.2.2-1~bpo13+0~rpt1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/ffcba6df225e4c491da6e0df9b4bb8e0c096d042-dark.svg">
-  <img alt="rpi5: bar chart of fps, CPU and GPU load per test" src="assets/ffcba6df225e4c491da6e0df9b4bb8e0c096d042-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/7d52d3377ead426622bb49fdb6485c5a84be48fb-dark.svg">
+  <img alt="rpi5: bar chart of fps, CPU and GPU load per test" src="assets/7d52d3377ead426622bb49fdb6485c5a84be48fb-light.svg">
 </picture>
 
 ## tp-a485
@@ -39,13 +37,12 @@
 - **duration**: 1 s
 - **warmup**: 10 frames
 - **format**: RGBA8888
-- **mjpeg**: q85
 - **renderer**: AMD Radeon Vega 8 Graphics (radeonsi, raven, ACO, DRM 3.64, 7.2.9-arch1-1)
 - **version**: OpenGL ES 3.2 Mesa 26.2.4-arch1.1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/3b7263c925d0d90414734f8cf152b9ab391656c0-dark.svg">
-  <img alt="tp-a485: bar chart of fps, CPU and GPU load per test" src="assets/3b7263c925d0d90414734f8cf152b9ab391656c0-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/079f036a7ca2c14678df419481d3f6c6a1b76ff0-dark.svg">
+  <img alt="tp-a485: bar chart of fps, CPU and GPU load per test" src="assets/079f036a7ca2c14678df419481d3f6c6a1b76ff0-light.svg">
 </picture>
 
 # Capture snippets
