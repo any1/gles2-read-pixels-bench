@@ -221,26 +221,6 @@
       }
     },
     {
-      "test":"udmabuf",
-      "method":"udmabuf",
-      "staging_realloc":false,
-      "description":"the frame rendered straight into a linear host memory buffer made with \/dev\/udmabuf, imported through EGL_EXT_image_dma_buf_import and attached with GL_OES_EGL_image, then glFinish and a per-row memcpy of the crop out of the mapping, no glReadPixels",
-      "frames":408,
-      "elapsed_s":1.001261,
-      "fps":407.49,
-      "cpu":{
-        "load_pct":7.38,
-        "time_s":0.591504,
-        "cpus":8
-      },
-      "gpu":{
-        "load_pct":38.58,
-        "engines":{
-          "gfx":38.58
-        }
-      }
-    },
-    {
       "test":"gbm",
       "method":"gbm",
       "staging_realloc":false,

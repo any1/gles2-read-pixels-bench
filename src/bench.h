@@ -18,9 +18,8 @@
  * destination row stride wider than the region being read.  CAPTURE_PBO and
  * CAPTURE_PBO_UNALIGNED need GL_NV_pixel_buffer_object and differ only in
  * where the crop lands inside the pack buffer, see pbo_init() in capture.c.
- * CAPTURE_UDMABUF and CAPTURE_GBM do not use glReadPixels at all: the frame
- * is rendered into a buffer the process allocated itself, see udmabuf_init()
- * and gbm_init() in capture.c.
+ * CAPTURE_GBM does not use glReadPixels at all: the frame is rendered into a
+ * buffer the process allocated itself, see gbm_init() in capture.c.
  */
 enum capture_method {
 	CAPTURE_GPU_STAGING,
@@ -29,7 +28,6 @@ enum capture_method {
 	CAPTURE_DIRECT,
 	CAPTURE_PBO,
 	CAPTURE_PBO_UNALIGNED,
-	CAPTURE_UDMABUF,
 	CAPTURE_GBM,
 	CAPTURE_METHOD_COUNT
 };
@@ -138,21 +136,14 @@ struct capture {
 	bool staging_checked;	/* staging has been validated once already */
 
 	/*
-	 * CAPTURE_UDMABUF and CAPTURE_GBM render into an EGLImage of their
-	 * own in place of the renderer's framebuffer, which is put back at
-	 * fini.
+	 * CAPTURE_GBM renders into an EGLImage of its own in place of the
+	 * renderer's framebuffer, which is put back at fini.
 	 */
 	struct renderer *renderer;
 	GLuint saved_fbo;
 	GLuint image_fbo;
 	GLuint image_rb;
 	EGLImageKHR image;
-
-	/* udmabuf: the frame as a memfd the CPU reads straight out of */
-	int memfd;
-	int dmabuf;
-	unsigned char *map;
-	size_t map_size;
 
 	/* gbm: the frame as a buffer object laid out the driver's way */
 	int drm_fd;

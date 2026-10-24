@@ -11,8 +11,8 @@
 - **version**: OpenGL ES 3.2 Mesa 26.2.5-arch1.1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/815b557a8a5ca7c424259cc58d360ae3cf80baf4-dark.svg">
-  <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/815b557a8a5ca7c424259cc58d360ae3cf80baf4-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/9a82ec9ab340a0c45c6847ff331d108bf7def578-dark.svg">
+  <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/9a82ec9ab340a0c45c6847ff331d108bf7def578-light.svg">
 </picture>
 
 ## rpi4-archlinux
@@ -26,8 +26,8 @@
 - **version**: OpenGL ES 3.1 Mesa 26.1.2-arch1.2
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/20156839ab5678d07d0f0d57dfb257499153986b-dark.svg">
-  <img alt="rpi4-archlinux: bar chart of fps, CPU and GPU load per test" src="assets/20156839ab5678d07d0f0d57dfb257499153986b-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/418ef524a6cbc673fd26a4f2da9153193b99a5db-dark.svg">
+  <img alt="rpi4-archlinux: bar chart of fps, CPU and GPU load per test" src="assets/418ef524a6cbc673fd26a4f2da9153193b99a5db-light.svg">
 </picture>
 
 ## rpi5
@@ -41,8 +41,8 @@
 - **version**: OpenGL ES 3.1 Mesa 26.2.2-1~bpo13+0~rpt1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/7d52d3377ead426622bb49fdb6485c5a84be48fb-dark.svg">
-  <img alt="rpi5: bar chart of fps, CPU and GPU load per test" src="assets/7d52d3377ead426622bb49fdb6485c5a84be48fb-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/1b8669f5084265658baef49dfc24568d5867e921-dark.svg">
+  <img alt="rpi5: bar chart of fps, CPU and GPU load per test" src="assets/1b8669f5084265658baef49dfc24568d5867e921-light.svg">
 </picture>
 
 ## tp-a485
@@ -56,8 +56,8 @@
 - **version**: OpenGL ES 3.2 Mesa 26.2.4-arch1.1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/079f036a7ca2c14678df419481d3f6c6a1b76ff0-dark.svg">
-  <img alt="tp-a485: bar chart of fps, CPU and GPU load per test" src="assets/079f036a7ca2c14678df419481d3f6c6a1b76ff0-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/2d5330579fda223043241ac4d3e96740bbac7057-dark.svg">
+  <img alt="tp-a485: bar chart of fps, CPU and GPU load per test" src="assets/2d5330579fda223043241ac4d3e96740bbac7057-light.svg">
 </picture>
 
 # Capture snippets
@@ -381,79 +381,6 @@ while (elapsed() < duration) {
 
 	frames++;
 }
-
-free(dst);
-```
-
-## udmabuf
-
-Needs `EGL_EXT_image_dma_buf_import`, `GL_OES_EGL_image`.
-
-```c
-unsigned char *dst;
-struct udmabuf_create create = { 0 };
-struct dma_buf_sync sync;
-unsigned char *map;
-EGLImageKHR image;
-GLuint rb, fbo;
-int memfd, dev, dmabuf, row;
-
-dst = malloc(w * h * 4);
-
-/* a page aligned memfd that cannot shrink, turned into a dma-buf */
-memfd = memfd_create("frame", MFD_CLOEXEC | MFD_ALLOW_SEALING);
-ftruncate(memfd, size);
-fcntl(memfd, F_ADD_SEALS, F_SEAL_SHRINK);
-dev = open("/dev/udmabuf", O_RDWR | O_CLOEXEC);
-create.memfd = memfd;
-create.flags = UDMABUF_FLAGS_CLOEXEC;
-create.size = size;
-dmabuf = ioctl(dev, UDMABUF_CREATE, &create);
-map = mmap(NULL, size, PROT_READ, MAP_SHARED, memfd, 0);
-
-/* and that dma-buf as the render target */
-image = eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
-			  NULL, (EGLint[]) {
-	EGL_WIDTH, fb_w, EGL_HEIGHT, fb_h,
-	EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_ABGR8888,
-	EGL_DMA_BUF_PLANE0_FD_EXT, dmabuf,
-	EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-	EGL_DMA_BUF_PLANE0_PITCH_EXT, fb_w * 4,
-	EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT, 0,
-	EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT, 0,
-	EGL_NONE });
-glGenRenderbuffers(1, &rb);
-glBindRenderbuffer(GL_RENDERBUFFER, rb);
-glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, image);
-glGenFramebuffers(1, &fbo);
-glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-			  GL_RENDERBUFFER, rb);
-render_fbo = fbo;
-
-while (elapsed() < duration) {
-	draw_triangle(render_fbo);
-
-	glFinish();
-	sync.flags = DMA_BUF_SYNC_START | DMA_BUF_SYNC_READ;
-	ioctl(dmabuf, DMA_BUF_IOCTL_SYNC, &sync);
-
-	for (row = 0; row < h; row++)
-		memcpy(dst + row * w * 4,
-		       map + ((y + row) * fb_w + x) * 4, w * 4);
-
-	sync.flags = DMA_BUF_SYNC_END | DMA_BUF_SYNC_READ;
-	ioctl(dmabuf, DMA_BUF_IOCTL_SYNC, &sync);
-
-	frames++;
-}
-
-glDeleteFramebuffers(1, &fbo);
-glDeleteRenderbuffers(1, &rb);
-eglDestroyImageKHR(dpy, image);
-munmap(map, size);
-close(dmabuf);
-close(memfd);
 
 free(dst);
 ```

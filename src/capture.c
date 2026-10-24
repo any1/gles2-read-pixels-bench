@@ -3,13 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <unistd.h>
 
 #include <gbm.h>
-#include <linux/dma-buf.h>
-#include <linux/udmabuf.h>
 
 #include "bench.h"
 
@@ -185,107 +181,6 @@ static void image_target_free(struct capture *c)
 }
 
 /*
- * No readback at all: the frame is rendered straight into a linear buffer in
- * host memory that this process owns, and the crop is copied out of it with
- * the CPU once the GPU is done.  The buffer is a memfd turned into a dma-buf
- * by /dev/udmabuf, imported as an EGLImage and attached to a framebuffer as a
- * renderbuffer, which the renderer is then pointed at.
- *
- * This is the one way to keep a driver's copy engines and shaders out of a
- * capture entirely, since every form of glReadPixels has to move pixels out
- * of a render target the driver placed and tiled as it saw fit.  The cost
- * moves into the render instead: every pixel the GPU draws goes to host
- * memory, and the frame is linear, so the measured rate is that of
- * rendering and capturing together, which is what the benchmark counts
- * anyway.
- */
-static void udmabuf_init(struct capture *c, struct renderer *r)
-{
-	EGLDisplay dpy = eglGetCurrentDisplay();
-	struct udmabuf_create create = { 0 };
-	EGLint attrs[32];
-	long page;
-	int dev;
-	int n = 0;
-
-	if (!epoxy_has_egl_extension(dpy, "EGL_EXT_image_dma_buf_import"))
-		die("the udmabuf method needs EGL_EXT_image_dma_buf_import");
-
-	/* udmabuf wants whole pages and a memfd that cannot shrink */
-	page = sysconf(_SC_PAGESIZE);
-	c->map_size = (size_t)c->fb_width * c->fb_height * 4;
-	c->map_size = (c->map_size + page - 1) / page * page;
-
-	c->memfd = memfd_create("gles2-read-pixels-bench frame",
-				MFD_CLOEXEC | MFD_ALLOW_SEALING);
-	if (c->memfd < 0)
-		die("memfd_create failed: %s", strerror(errno));
-	if (ftruncate(c->memfd, (off_t)c->map_size) < 0)
-		die("ftruncate of the frame memfd failed: %s", strerror(errno));
-	if (fcntl(c->memfd, F_ADD_SEALS, F_SEAL_SHRINK) < 0)
-		die("sealing the frame memfd failed: %s", strerror(errno));
-
-	dev = open("/dev/udmabuf", O_RDWR | O_CLOEXEC);
-	if (dev < 0)
-		die("opening /dev/udmabuf failed: %s", strerror(errno));
-
-	create.memfd = (uint32_t)c->memfd;
-	create.flags = UDMABUF_FLAGS_CLOEXEC;
-	create.offset = 0;
-	create.size = c->map_size;
-	c->dmabuf = ioctl(dev, UDMABUF_CREATE, &create);
-	if (c->dmabuf < 0)
-		die("UDMABUF_CREATE failed: %s", strerror(errno));
-	close(dev);
-
-	c->map = mmap(NULL, c->map_size, PROT_READ, MAP_SHARED, c->memfd, 0);
-	if (c->map == MAP_FAILED)
-		die("mmap of the frame memfd failed: %s", strerror(errno));
-
-	attrs[n++] = EGL_WIDTH;
-	attrs[n++] = c->fb_width;
-	attrs[n++] = EGL_HEIGHT;
-	attrs[n++] = c->fb_height;
-	attrs[n++] = EGL_LINUX_DRM_FOURCC_EXT;
-	attrs[n++] = (EGLint)FOURCC_ABGR8888;
-	attrs[n++] = EGL_DMA_BUF_PLANE0_FD_EXT;
-	attrs[n++] = c->dmabuf;
-	attrs[n++] = EGL_DMA_BUF_PLANE0_OFFSET_EXT;
-	attrs[n++] = 0;
-	attrs[n++] = EGL_DMA_BUF_PLANE0_PITCH_EXT;
-	attrs[n++] = c->fb_width * 4;
-
-	/* say linear outright where that can be said */
-	if (epoxy_has_egl_extension(dpy,
-				    "EGL_EXT_image_dma_buf_import_modifiers")) {
-		attrs[n++] = EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT;
-		attrs[n++] = 0;
-		attrs[n++] = EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT;
-		attrs[n++] = 0;
-	}
-	attrs[n++] = EGL_NONE;
-
-	c->image = eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
-				     NULL, attrs);
-	if (c->image == EGL_NO_IMAGE_KHR)
-		die("eglCreateImageKHR of the udmabuf failed (0x%04x)",
-		    eglGetError());
-
-	image_target_init(c, r);
-}
-
-static void udmabuf_free(struct capture *c)
-{
-	image_target_free(c);
-	if (c->map && c->map != MAP_FAILED)
-		munmap(c->map, c->map_size);
-	if (c->dmabuf >= 0)
-		close(c->dmabuf);
-	if (c->memfd >= 0)
-		close(c->memfd);
-}
-
-/*
  * The render node behind the EGL display, when EGL will say which it is, or
  * else the first one that opens.
  */
@@ -330,14 +225,14 @@ static int open_render_node(EGLDisplay dpy)
 }
 
 /*
- * Also no glReadPixels, but no say over the layout either: the frame is a
- * GBM buffer object created for rendering, with the modifiers EGL is willing
- * to import, so the driver puts it wherever and tiles it however it renders
- * best.  It is imported as an EGLImage and drawn into like the udmabuf, and
- * the crop is read through gbm_bo_map(), which leaves it to the driver to
- * get those pixels into something the CPU can read.  Mesa copies through a
- * linear staging buffer the same way glReadPixels does, so what this
- * measures is that copy without the GL pixel path on top of it.
+ * No glReadPixels: the frame is a GBM buffer object created for rendering,
+ * with the modifiers EGL is willing to import, so the driver puts it wherever
+ * and tiles it however it renders best.  It is imported as an EGLImage and
+ * attached to a framebuffer that the renderer is pointed at, and the crop is
+ * read through gbm_bo_map(), which leaves it to the driver to get those
+ * pixels into something the CPU can read.  Mesa copies through a linear
+ * staging buffer the same way glReadPixels does, so what this measures is
+ * that copy without the GL pixel path on top of it.
  */
 static void gbm_init(struct capture *c, struct renderer *r)
 {
@@ -468,19 +363,6 @@ static void gbm_free(struct capture *c)
 }
 
 /*
- * dma-buf asks for CPU access to be bracketed like this, so that exporters
- * on machines where device writes are not coherent with the CPU caches can
- * do what is needed.  Here it is cheap and there is no reason to skip it.
- */
-static void udmabuf_sync(const struct capture *c, uint64_t flags)
-{
-	struct dma_buf_sync sync = { .flags = flags | DMA_BUF_SYNC_READ };
-
-	if (ioctl(c->dmabuf, DMA_BUF_IOCTL_SYNC, &sync) < 0)
-		die("DMA_BUF_IOCTL_SYNC failed: %s", strerror(errno));
-}
-
-/*
  * The staging resources of the method, if it has any.  They are built once at
  * init and torn down at fini, unless the caller has asked for them to be
  * built and torn down around every single capture, as a caller that cannot
@@ -524,9 +406,9 @@ static void staging_free(struct capture *c)
 }
 
 /*
- * The udmabuf and gbm buffers are the render target itself, so unlike a
- * staging buffer they cannot be built after the frame has been rendered and
- * freed after the capture; those methods have no per-capture variant.
+ * The gbm buffer is the render target itself, so unlike a staging buffer it
+ * cannot be built after the frame has been rendered and freed after the
+ * capture; that method has no per-capture variant.
  */
 bool method_has_staging(enum capture_method m)
 {
@@ -547,8 +429,6 @@ void capture_init(struct capture *c, const struct test *t,
 	enum capture_method m = t->method;
 
 	memset(c, 0, sizeof(*c));
-	c->memfd = -1;
-	c->dmabuf = -1;
 	c->drm_fd = -1;
 	c->image = EGL_NO_IMAGE_KHR;
 
@@ -585,9 +465,6 @@ void capture_init(struct capture *c, const struct test *t,
 	case CAPTURE_PBO:
 	case CAPTURE_PBO_UNALIGNED:
 		pbo_init(c);
-		break;
-	case CAPTURE_UDMABUF:
-		udmabuf_init(c, r);
 		break;
 	case CAPTURE_GBM:
 		gbm_init(c, r);
@@ -695,27 +572,6 @@ void capture_frame(struct capture *c)
 		glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
 		break;
 
-	case CAPTURE_UDMABUF:
-		/*
-		 * The frame is already where the CPU can read it; all that
-		 * is left is to wait for the GPU to finish drawing it.  Row
-		 * 0 of the buffer is GL row 0, the bottom, the same order
-		 * glReadPixels delivers.
-		 */
-		glFinish();
-		udmabuf_sync(c, DMA_BUF_SYNC_START);
-
-		for (row = 0; row < c->h; row++) {
-			const unsigned char *src = c->map +
-				((size_t)(c->y + row) * c->fb_width + c->x) * 4;
-
-			memcpy(c->dst + (size_t)row * c->row_bytes, src,
-			       c->row_bytes);
-		}
-
-		udmabuf_sync(c, DMA_BUF_SYNC_END);
-		break;
-
 	case CAPTURE_GBM:
 		/*
 		 * gbm_bo_map() has the driver deliver just the crop, which
@@ -756,16 +612,8 @@ void capture_fini(struct capture *c)
 		glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
 		glPixelStorei(GL_PACK_SKIP_ROWS, 0);
 	}
-	switch (c->method) {
-	case CAPTURE_UDMABUF:
-		udmabuf_free(c);
-		break;
-	case CAPTURE_GBM:
+	if (c->method == CAPTURE_GBM)
 		gbm_free(c);
-		break;
-	default:
-		break;
-	}
 
 	staging_free(c);
 	free(c->dst);
