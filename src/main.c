@@ -235,6 +235,7 @@ static void run_test(struct renderer *r, const struct test *t,
 	struct capture cap;
 	struct mjpeg *mj = NULL;
 	char name[TEST_NAME_MAX];
+	uint8_t sum = 0;
 	double t0;
 	int i;
 
@@ -275,6 +276,9 @@ static void run_test(struct renderer *r, const struct test *t,
 
 		if (mj)
 			mjpeg_write(mj, cap.crop, cap.crop_pitch);
+		else
+			sum += sum_bytes(cap.crop, cap.row_bytes, cap.h,
+					 cap.crop_pitch);
 	}
 
 	res->elapsed = now_s() - t0;
@@ -287,6 +291,8 @@ static void run_test(struct renderer *r, const struct test *t,
 	log_msg("  %llu frames in %.3f s (%.1f fps)",
 		(unsigned long long)res->frames, res->elapsed,
 		res->frames / res->elapsed);
+	if (!mj)
+		log_msg("  byte sum %u", sum);
 	log_load(&res->load);
 
 	if (mj)
@@ -414,9 +420,6 @@ int main(int argc, char **argv)
 			continue;
 		run_test(&renderer, &tests[i], &opts, &results[nresults++]);
 	}
-
-	log_msg("copy checksum %016llx",
-		(unsigned long long)capture_get_checksum());
 
 	root = json_object_new_object();
 	json_object_object_add(root, "gl", json_gl_info());

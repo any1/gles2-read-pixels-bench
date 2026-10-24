@@ -56,9 +56,6 @@ struct ff_result {
 	char output[512];
 };
 
-/* see capture_touch() in capture.c */
-static volatile uint64_t ff_checksum;
-
 static const char *ff_method_name(enum ff_method m)
 {
 	switch (m) {
@@ -218,17 +215,6 @@ static void pbo_copy_out(struct ff_capture *c, GLuint pbo)
 	glBindBuffer(GL_PIXEL_PACK_BUFFER_NV, 0);
 }
 
-static void ff_capture_touch(const struct ff_capture *c)
-{
-	uint64_t sum = 0;
-	int row;
-
-	for (row = 0; row < c->height; row++)
-		sum += c->dst[(size_t)row * c->pitch];
-
-	ff_checksum += sum;
-}
-
 /*
  * Reads back the frame just rendered, and returns whether c->dst now holds a
  * new frame.  For FF_PBO_ASYNC that frame is the one rendered on the previous
@@ -269,7 +255,6 @@ static bool ff_capture_frame(struct ff_capture *c)
 		die("unknown full-frame method");
 	}
 
-	ff_capture_touch(c);
 	c->completed++;
 	return true;
 }
@@ -421,6 +406,7 @@ static void run_test(struct renderer *r, enum ff_method m,
 	struct load_sample load_start, load_end;
 	struct ff_capture cap;
 	struct mjpeg *mj = NULL;
+	uint8_t sum = 0;
 	double t0;
 	int i;
 
@@ -455,8 +441,14 @@ static void run_test(struct renderer *r, enum ff_method m,
 	while (now_s() - t0 < o->duration) {
 		renderer_draw(r, now_s() - t0);
 
-		if (ff_capture_frame(&cap) && mj)
+		if (!ff_capture_frame(&cap))
+			continue;
+
+		if (mj)
 			mjpeg_write(mj, cap.dst, cap.pitch);
+		else
+			sum += sum_bytes(cap.dst, cap.pitch, cap.height,
+					 cap.pitch);
 	}
 
 	res->elapsed = now_s() - t0;
@@ -469,6 +461,8 @@ static void run_test(struct renderer *r, enum ff_method m,
 	log_msg("  %llu frames in %.3f s (%.1f fps)",
 		(unsigned long long)res->frames, res->elapsed,
 		res->frames / res->elapsed);
+	if (!mj)
+		log_msg("  byte sum %u", sum);
 	log_load(&res->load);
 
 	if (mj)
@@ -540,8 +534,6 @@ int main(int argc, char **argv)
 			continue;
 		run_test(&renderer, i, &opts, &results[nresults++]);
 	}
-
-	log_msg("copy checksum %016llx", (unsigned long long)ff_checksum);
 
 	root = json_object_new_object();
 	json_object_object_add(root, "gl", json_gl_info());

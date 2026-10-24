@@ -29,30 +29,6 @@
 #endif
 
 /*
- * Reading the destination buffer through a volatile accumulator keeps the
- * compiler from deciding that the copy into it is dead.  One byte per row is
- * enough to observe every memcpy() of the row loop, and memcpy() is a library
- * call, so it is eliminated whole or not at all.
- */
-static volatile uint64_t capture_checksum;
-
-static void capture_touch(const struct capture *c)
-{
-	uint64_t sum = 0;
-	int row;
-
-	for (row = 0; row < c->h; row++)
-		sum += c->crop[(size_t)row * c->crop_pitch];
-
-	capture_checksum += sum;
-}
-
-uint64_t capture_get_checksum(void)
-{
-	return capture_checksum;
-}
-
-/*
  * The GPU-side staging buffer is a crop-sized texture.  ES 2.0 has no blit, so
  * the crop is moved with glCopyTexSubImage2D, which stays on the GPU, and the
  * readback is then an untruncated full-surface glReadPixels.
@@ -770,7 +746,6 @@ void capture_frame(struct capture *c)
 	if (c->realloc_staging)
 		staging_free(c);
 
-	capture_touch(c);
 	c->completed++;
 }
 

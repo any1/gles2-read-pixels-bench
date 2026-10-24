@@ -40,6 +40,28 @@ void *xmalloc(size_t size)
 	return p;
 }
 
+/*
+ * Reads every byte of a captured image, so that the copy into it cannot be
+ * optimised out and the cost of pulling it through the CPU caches counts
+ * towards the measurement, as it would for a real consumer of the frame.
+ */
+uint8_t sum_bytes(const unsigned char *buf, size_t row_bytes, int rows,
+		  size_t pitch)
+{
+	uint8_t sum = 0;
+	size_t i;
+	int row;
+
+	for (row = 0; row < rows; row++) {
+		const unsigned char *p = buf + (size_t)row * pitch;
+
+		for (i = 0; i < row_bytes; i++)
+			sum += p[i];
+	}
+
+	return sum;
+}
+
 double now_s(void)
 {
 	struct timespec ts;

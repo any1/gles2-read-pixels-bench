@@ -68,6 +68,8 @@ void log_msg(const char *fmt, ...);
 void die(const char *fmt, ...);
 double now_s(void);
 void gl_check(const char *what);
+uint8_t sum_bytes(const unsigned char *buf, size_t row_bytes, int rows,
+		  size_t pitch);
 
 /* tests.c */
 const char *method_name(enum capture_method m);
@@ -165,7 +167,6 @@ void capture_init(struct capture *c, const struct test *t,
 		  const struct options *o, struct renderer *r);
 void capture_frame(struct capture *c);
 void capture_fini(struct capture *c);
-uint64_t capture_get_checksum(void);
 
 /* load.c */
 #define LOAD_ENGINE_MAX 16
