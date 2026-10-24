@@ -9,7 +9,6 @@ import argparse
 import json
 import os
 import re
-import subprocess
 import sys
 from xml.sax.saxutils import escape
 
@@ -212,26 +211,6 @@ def render_section(name, doc, light, dark):
         '</picture>', ''])
 
 
-def git(cwd, *args):
-    try:
-        p = subprocess.run(['git', '-C', cwd, *args], capture_output=True,
-                           text=True)
-    except OSError:
-        return None
-    return p.stdout if p.returncode == 0 else None
-
-
-def git_shas(cwd, fnames):
-    listed = git(cwd, 'ls-files', '-z', '--', *fnames)
-    tracked = [f for f in fnames if f in (listed or '').split('\0')]
-    if not tracked:
-        return {}
-    out = git(cwd, 'hash-object', '--', *tracked)
-    if out is None:
-        return {}
-    return dict(zip(tracked, out.split()))
-
-
 def main():
     ap = argparse.ArgumentParser(
         description='Make a single markdown report with svg charts from '
@@ -274,17 +253,14 @@ def main():
 
     out = [f'# {md_escape(args.title)}', '']
     written = set()
-    shas = git_shas(args.dir, [f'{name}.json' for name, _ in docs])
     for name, doc in docs:
-        sha = shas.get(f'{name}.json')
         links = {}
         for mode, theme in THEMES.items():
-            fname = f'{sha or name}-{mode}.svg'
+            fname = f'{name}-{mode}.svg'
             path = os.path.join(assets, fname)
-            if not sha or not os.path.exists(path):
-                with open(path, 'w') as f:
-                    f.write(render_svg(doc['results'], theme))
-                log(f'wrote {path}')
+            with open(path, 'w') as f:
+                f.write(render_svg(doc['results'], theme))
+            log(f'wrote {path}')
             written.add(fname)
             links[mode] = link(path)
         out.append(render_section(name, doc, links['light'], links['dark']))

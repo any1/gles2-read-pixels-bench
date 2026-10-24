@@ -19,6 +19,4 @@ the report:
 ./scripts/md-report.py
 ```
 
-This will update `REPORT.md`. Then create a pull-request. The json files should
-be committed first because this avoids regenerating the SVG files on next
-commit.
+This will update `REPORT.md`. Then create a pull-request.

@@ -11,8 +11,8 @@
 - **version**: OpenGL ES 3.2 Mesa 26.2.5-arch1.1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/9a82ec9ab340a0c45c6847ff331d108bf7def578-dark.svg">
-  <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/9a82ec9ab340a0c45c6847ff331d108bf7def578-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/galago-dark.svg">
+  <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/galago-light.svg">
 </picture>
 
 ## rpi4-archlinux
@@ -26,8 +26,8 @@
 - **version**: OpenGL ES 3.1 Mesa 26.1.2-arch1.2
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/418ef524a6cbc673fd26a4f2da9153193b99a5db-dark.svg">
-  <img alt="rpi4-archlinux: bar chart of fps, CPU and GPU load per test" src="assets/418ef524a6cbc673fd26a4f2da9153193b99a5db-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/rpi4-archlinux-dark.svg">
+  <img alt="rpi4-archlinux: bar chart of fps, CPU and GPU load per test" src="assets/rpi4-archlinux-light.svg">
 </picture>
 
 ## rpi5
@@ -41,8 +41,8 @@
 - **version**: OpenGL ES 3.1 Mesa 26.2.2-1~bpo13+0~rpt1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/1b8669f5084265658baef49dfc24568d5867e921-dark.svg">
-  <img alt="rpi5: bar chart of fps, CPU and GPU load per test" src="assets/1b8669f5084265658baef49dfc24568d5867e921-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/rpi5-dark.svg">
+  <img alt="rpi5: bar chart of fps, CPU and GPU load per test" src="assets/rpi5-light.svg">
 </picture>
 
 ## tp-a485
@@ -56,8 +56,8 @@
 - **version**: OpenGL ES 3.2 Mesa 26.2.4-arch1.1
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/5e8a581cc449d1b174d12dd544a3e21ff6fc65ca-dark.svg">
-  <img alt="tp-a485: bar chart of fps, CPU and GPU load per test" src="assets/5e8a581cc449d1b174d12dd544a3e21ff6fc65ca-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/tp-a485-dark.svg">
+  <img alt="tp-a485: bar chart of fps, CPU and GPU load per test" src="assets/tp-a485-light.svg">
 </picture>
 
 # Capture snippets
