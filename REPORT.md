@@ -15,6 +15,21 @@
   <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/815b557a8a5ca7c424259cc58d360ae3cf80baf4-light.svg">
 </picture>
 
+## rpi4-archlinux
+
+- **crop**: 1280x720+320+180
+- **frame**: 1920x1080
+- **duration**: 1 s
+- **warmup**: 10 frames
+- **format**: RGBA8888
+- **renderer**: V3D 4.2.14.0
+- **version**: OpenGL ES 3.1 Mesa 26.1.2-arch1.2
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/20156839ab5678d07d0f0d57dfb257499153986b-dark.svg">
+  <img alt="rpi4-archlinux: bar chart of fps, CPU and GPU load per test" src="assets/20156839ab5678d07d0f0d57dfb257499153986b-light.svg">
+</picture>
+
 ## rpi5
 
 - **crop**: 1280x720+320+180
