@@ -397,3 +397,78 @@ close(fd);
 
 free(dst);
 ```
+
+## gbm-full
+
+Needs `EGL_EXT_image_dma_buf_import`, `EGL_EXT_image_dma_buf_import_modifiers`, `GL_OES_EGL_image`.
+
+```c
+unsigned char *dst;
+struct gbm_device *gbm;
+struct gbm_bo *bo;
+EGLuint64KHR mods[64];
+EGLint nmods;
+EGLImageKHR image;
+uint64_t modifier;
+void *map, *map_data;
+uint32_t stride;
+GLuint rb, fbo;
+int fd, row;
+
+dst = malloc(w * h * 4);
+
+/* a buffer object laid out however the driver renders best */
+fd = open("/dev/dri/renderD128", O_RDWR | O_CLOEXEC);
+gbm = gbm_create_device(fd);
+eglQueryDmaBufModifiersEXT(dpy, DRM_FORMAT_ABGR8888, 64, mods, NULL,
+			   &nmods);
+bo = gbm_bo_create_with_modifiers2(gbm, fb_w, fb_h, DRM_FORMAT_ABGR8888,
+				   mods, nmods, GBM_BO_USE_RENDERING);
+modifier = gbm_bo_get_modifier(bo);
+
+/* and that buffer as the render target, one plane shown */
+image = eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
+			  NULL, (EGLint[]) {
+	EGL_WIDTH, fb_w, EGL_HEIGHT, fb_h,
+	EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_ABGR8888,
+	EGL_DMA_BUF_PLANE0_FD_EXT, gbm_bo_get_fd_for_plane(bo, 0),
+	EGL_DMA_BUF_PLANE0_OFFSET_EXT, gbm_bo_get_offset(bo, 0),
+	EGL_DMA_BUF_PLANE0_PITCH_EXT, gbm_bo_get_stride_for_plane(bo, 0),
+	EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT, modifier & 0xffffffff,
+	EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT, modifier >> 32,
+	EGL_NONE });
+glGenRenderbuffers(1, &rb);
+glBindRenderbuffer(GL_RENDERBUFFER, rb);
+glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, image);
+glGenFramebuffers(1, &fbo);
+glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			  GL_RENDERBUFFER, rb);
+render_fbo = fbo;
+
+while (elapsed() < duration) {
+	draw_triangle(render_fbo);
+
+	glFinish();
+	map_data = NULL;
+	map = gbm_bo_map(bo, 0, 0, fb_w, fb_h, GBM_BO_TRANSFER_READ, &stride,
+			 &map_data);
+
+	for (row = 0; row < h; row++)
+		memcpy(dst + row * w * 4,
+		       (unsigned char *)map + (y + row) * stride + x * 4, w * 4);
+
+	gbm_bo_unmap(bo, map_data);
+
+	frames++;
+}
+
+glDeleteFramebuffers(1, &fbo);
+glDeleteRenderbuffers(1, &rb);
+eglDestroyImageKHR(dpy, image);
+gbm_bo_destroy(bo);
+gbm_device_destroy(gbm);
+close(fd);
+
+free(dst);
+```

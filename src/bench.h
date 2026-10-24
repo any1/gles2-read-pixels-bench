@@ -18,8 +18,10 @@
  * destination row stride wider than the region being read.  CAPTURE_PBO and
  * CAPTURE_PBO_UNALIGNED need GL_NV_pixel_buffer_object and differ only in
  * where the crop lands inside the pack buffer, see pbo_init() in capture.c.
- * CAPTURE_GBM does not use glReadPixels at all: the frame is rendered into a
- * buffer the process allocated itself, see gbm_init() in capture.c.
+ * CAPTURE_GBM and CAPTURE_GBM_FULL do not use glReadPixels at all: the frame
+ * is rendered into a buffer the process allocated itself, see gbm_init() in
+ * capture.c.  They differ only in whether gbm_bo_map() is asked for the crop
+ * or for the whole buffer.
  */
 enum capture_method {
 	CAPTURE_GPU_STAGING,
@@ -29,6 +31,7 @@ enum capture_method {
 	CAPTURE_PBO,
 	CAPTURE_PBO_UNALIGNED,
 	CAPTURE_GBM,
+	CAPTURE_GBM_FULL,
 	CAPTURE_METHOD_COUNT
 };
 
@@ -136,8 +139,9 @@ struct capture {
 	bool staging_checked;	/* staging has been validated once already */
 
 	/*
-	 * CAPTURE_GBM renders into an EGLImage of its own in place of the
-	 * renderer's framebuffer, which is put back at fini.
+	 * CAPTURE_GBM and CAPTURE_GBM_FULL render into an EGLImage of their
+	 * own in place of the renderer's framebuffer, which is put back at
+	 * fini.
 	 */
 	struct renderer *renderer;
 	GLuint saved_fbo;

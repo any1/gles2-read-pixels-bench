@@ -467,6 +467,7 @@ void capture_init(struct capture *c, const struct test *t,
 		pbo_init(c);
 		break;
 	case CAPTURE_GBM:
+	case CAPTURE_GBM_FULL:
 		gbm_init(c, r);
 		break;
 	default:
@@ -595,6 +596,29 @@ void capture_frame(struct capture *c)
 		gbm_bo_unmap(c->bo, map_data);
 		break;
 
+	case CAPTURE_GBM_FULL:
+		/*
+		 * The same, except that the whole buffer is mapped and the
+		 * crop is picked out of it by the CPU, so the driver's copy
+		 * covers the full frame rather than just the crop.
+		 */
+		glFinish();
+		map_data = NULL;
+		map = gbm_bo_map(c->bo, 0, 0, c->fb_width, c->fb_height,
+				 GBM_BO_TRANSFER_READ, &stride, &map_data);
+		if (!map)
+			die("gbm_bo_map failed: %s", strerror(errno));
+
+		for (row = 0; row < c->h; row++)
+			memcpy(c->dst + (size_t)row * c->row_bytes,
+			       (const unsigned char *)map +
+			       (size_t)(c->y + row) * stride +
+			       (size_t)c->x * 4,
+			       c->row_bytes);
+
+		gbm_bo_unmap(c->bo, map_data);
+		break;
+
 	default:
 		die("unknown capture method");
 	}
@@ -612,7 +636,7 @@ void capture_fini(struct capture *c)
 		glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
 		glPixelStorei(GL_PACK_SKIP_ROWS, 0);
 	}
-	if (c->method == CAPTURE_GBM)
+	if (c->method == CAPTURE_GBM || c->method == CAPTURE_GBM_FULL)
 		gbm_free(c);
 
 	staging_free(c);

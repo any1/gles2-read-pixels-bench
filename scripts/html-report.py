@@ -185,6 +185,21 @@ close(fd);''',
     },
 }
 
+METHODS['gbm-full'] = {
+    **METHODS['gbm'],
+    'capture': '''\
+glFinish();
+map_data = NULL;
+map = gbm_bo_map(bo, 0, 0, fb_w, fb_h, GBM_BO_TRANSFER_READ, &stride,
+		 &map_data);
+
+for (row = 0; row < h; row++)
+	memcpy(dst + row * w * 4,
+	       (unsigned char *)map + (y + row) * stride + x * 4, w * 4);
+
+gbm_bo_unmap(bo, map_data);''',
+}
+
 C_TOKENS = re.compile(r'''
     (?P<comment>/\*.*?\*/|//[^\n]*)
   | (?P<string>"(?:\\.|[^"\\])*")
