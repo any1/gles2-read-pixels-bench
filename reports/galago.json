@@ -17,8 +17,7 @@
     "duration_s":1.000,
     "warmup_frames":10,
     "format":"RGBA8888",
-    "encode":true,
-    "jpeg_quality":85
+    "encode":false
   },
   "results":[
     {
@@ -26,288 +25,276 @@
       "method":"gpu-staging",
       "staging_realloc":false,
       "description":"glCopyTexSubImage2D of the crop into a crop-sized texture, then one full glReadPixels of that texture",
-      "frames":113,
-      "elapsed_s":1.000740,
-      "fps":112.92,
+      "frames":169,
+      "elapsed_s":1.000723,
+      "fps":168.88,
       "cpu":{
-        "load_pct":6.82,
-        "time_s":0.546278,
+        "load_pct":4.22,
+        "time_s":0.337719,
         "cpus":8
       },
       "gpu":{
-        "load_pct":41.70,
+        "load_pct":62.39,
         "engines":{
-          "render":41.70,
+          "render":62.39,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-gpu-staging-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"gpu-staging-realloc",
       "method":"gpu-staging",
       "staging_realloc":true,
       "description":"glCopyTexSubImage2D of the crop into a crop-sized texture, then one full glReadPixels of that texture",
-      "frames":101,
-      "elapsed_s":1.009743,
-      "fps":100.03,
+      "frames":165,
+      "elapsed_s":1.004691,
+      "fps":164.23,
       "cpu":{
-        "load_pct":7.39,
-        "time_s":0.597011,
+        "load_pct":4.40,
+        "time_s":0.354137,
         "cpus":8
       },
       "gpu":{
-        "load_pct":37.00,
+        "load_pct":60.92,
         "engines":{
-          "render":37.00,
+          "render":60.92,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-gpu-staging-realloc-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"cpu-staging",
       "method":"cpu-staging",
       "staging_realloc":false,
       "description":"one full-frame glReadPixels into a staging buffer, then a per-row memcpy of the crop",
-      "frames":68,
-      "elapsed_s":1.002696,
-      "fps":67.82,
+      "frames":91,
+      "elapsed_s":1.005323,
+      "fps":90.52,
       "cpu":{
-        "load_pct":6.47,
-        "time_s":0.519413,
+        "load_pct":4.59,
+        "time_s":0.369463,
         "cpus":8
       },
       "gpu":{
-        "load_pct":44.75,
+        "load_pct":60.88,
         "engines":{
-          "render":44.75,
+          "render":60.88,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-cpu-staging-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"cpu-staging-realloc",
       "method":"cpu-staging",
       "staging_realloc":true,
       "description":"one full-frame glReadPixels into a staging buffer, then a per-row memcpy of the crop",
-      "frames":79,
-      "elapsed_s":1.011105,
-      "fps":78.13,
+      "frames":91,
+      "elapsed_s":1.002698,
+      "fps":90.76,
       "cpu":{
-        "load_pct":5.75,
-        "time_s":0.465065,
+        "load_pct":4.57,
+        "time_s":0.366481,
         "cpus":8
       },
       "gpu":{
-        "load_pct":50.56,
+        "load_pct":61.14,
         "engines":{
-          "render":50.56,
+          "render":61.14,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-cpu-staging-realloc-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"per-row",
       "method":"per-row",
       "staging_realloc":false,
       "description":"one glReadPixels per row of the crop, straight into the destination buffer",
-      "frames":67,
-      "elapsed_s":1.013831,
-      "fps":66.09,
+      "frames":91,
+      "elapsed_s":1.005332,
+      "fps":90.52,
       "cpu":{
-        "load_pct":6.67,
-        "time_s":0.541423,
+        "load_pct":4.67,
+        "time_s":0.375728,
         "cpus":8
       },
       "gpu":{
-        "load_pct":43.33,
+        "load_pct":60.29,
         "engines":{
-          "render":43.33,
+          "render":60.29,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-per-row-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"direct",
       "method":"direct",
       "staging_realloc":false,
       "description":"one glReadPixels of the crop straight into a full frame sized destination buffer, no staging buffer, using GL_NV_pack_subimage",
-      "frames":67,
-      "elapsed_s":1.012515,
-      "fps":66.17,
+      "frames":126,
+      "elapsed_s":1.003511,
+      "fps":125.56,
       "cpu":{
-        "load_pct":6.53,
-        "time_s":0.529037,
+        "load_pct":3.94,
+        "time_s":0.316789,
         "cpus":8
       },
       "gpu":{
-        "load_pct":44.22,
+        "load_pct":65.08,
         "engines":{
-          "render":44.22,
+          "render":65.08,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-direct-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"pbo",
       "method":"pbo",
       "staging_realloc":false,
       "description":"glReadPixels of the crop into a pixel pack buffer, then glMapBufferRangeEXT and a memcpy out of the mapping, using GL_NV_pixel_buffer_object",
-      "frames":226,
-      "elapsed_s":1.002259,
-      "fps":225.49,
+      "frames":300,
+      "elapsed_s":1.001828,
+      "fps":299.45,
       "cpu":{
-        "load_pct":8.08,
-        "time_s":0.647647,
+        "load_pct":6.71,
+        "time_s":0.538192,
         "cpus":8
       },
       "gpu":{
-        "load_pct":30.42,
+        "load_pct":39.86,
         "engines":{
-          "render":30.42,
+          "render":39.86,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-pbo-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"pbo-realloc",
       "method":"pbo",
       "staging_realloc":true,
       "description":"glReadPixels of the crop into a pixel pack buffer, then glMapBufferRangeEXT and a memcpy out of the mapping, using GL_NV_pixel_buffer_object",
-      "frames":227,
-      "elapsed_s":1.004162,
-      "fps":226.06,
+      "frames":334,
+      "elapsed_s":1.002054,
+      "fps":333.32,
       "cpu":{
-        "load_pct":7.55,
-        "time_s":0.606724,
+        "load_pct":5.08,
+        "time_s":0.407232,
         "cpus":8
       },
       "gpu":{
-        "load_pct":33.84,
+        "load_pct":49.80,
         "engines":{
-          "render":33.84,
+          "render":49.80,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-pbo-realloc-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"pbo-unaligned",
       "method":"pbo-unaligned",
       "staging_realloc":false,
       "description":"glReadPixels of the crop into a pixel pack buffer at a one byte offset, which keeps Mesa off its shader based pack buffer download, then glMapBufferRangeEXT and a memcpy out of the mapping, using GL_NV_pixel_buffer_object",
-      "frames":65,
-      "elapsed_s":1.009118,
-      "fps":64.41,
+      "frames":103,
+      "elapsed_s":1.002955,
+      "fps":102.70,
       "cpu":{
-        "load_pct":6.79,
-        "time_s":0.548356,
+        "load_pct":4.00,
+        "time_s":0.321119,
         "cpus":8
       },
       "gpu":{
-        "load_pct":42.39,
+        "load_pct":65.26,
         "engines":{
-          "render":42.39,
+          "render":65.26,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-pbo-unaligned-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"pbo-unaligned-realloc",
       "method":"pbo-unaligned",
       "staging_realloc":true,
       "description":"glReadPixels of the crop into a pixel pack buffer at a one byte offset, which keeps Mesa off its shader based pack buffer download, then glMapBufferRangeEXT and a memcpy out of the mapping, using GL_NV_pixel_buffer_object",
-      "frames":68,
-      "elapsed_s":1.005954,
-      "fps":67.60,
+      "frames":97,
+      "elapsed_s":1.001101,
+      "fps":96.89,
       "cpu":{
-        "load_pct":6.59,
-        "time_s":0.530726,
+        "load_pct":4.09,
+        "time_s":0.327901,
         "cpus":8
       },
       "gpu":{
-        "load_pct":43.98,
+        "load_pct":65.17,
         "engines":{
-          "render":43.98,
+          "render":65.17,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-pbo-unaligned-realloc-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"udmabuf",
       "method":"udmabuf",
       "staging_realloc":false,
       "description":"the frame rendered straight into a linear host memory buffer made with \/dev\/udmabuf, imported through EGL_EXT_image_dma_buf_import and attached with GL_OES_EGL_image, then glFinish and a per-row memcpy of the crop out of the mapping, no glReadPixels",
-      "frames":63,
-      "elapsed_s":1.000741,
-      "fps":62.95,
+      "frames":142,
+      "elapsed_s":1.001482,
+      "fps":141.79,
       "cpu":{
-        "load_pct":6.85,
-        "time_s":0.549049,
+        "load_pct":3.44,
+        "time_s":0.275383,
         "cpus":8
       },
       "gpu":{
-        "load_pct":42.40,
+        "load_pct":69.20,
         "engines":{
-          "render":42.40,
+          "render":69.20,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-udmabuf-1920x1080-crop1280x720.mjpg"
+      }
     },
     {
       "test":"gbm",
       "method":"gbm",
       "staging_realloc":false,
       "description":"the frame rendered into a GBM buffer object laid out as the driver prefers, imported through EGL_EXT_image_dma_buf_import and attached with GL_OES_EGL_image, then glFinish and the crop read through gbm_bo_map, which leaves the copy to the driver, no glReadPixels",
-      "frames":123,
-      "elapsed_s":1.005538,
-      "fps":122.32,
+      "frames":205,
+      "elapsed_s":1.003949,
+      "fps":204.19,
       "cpu":{
-        "load_pct":7.78,
-        "time_s":0.626217,
+        "load_pct":5.28,
+        "time_s":0.424276,
         "cpus":8
       },
       "gpu":{
-        "load_pct":32.39,
+        "load_pct":53.44,
         "engines":{
-          "render":32.39,
+          "render":53.44,
           "copy":0.00,
           "video":0.00,
           "video-enhance":0.00
         }
-      },
-      "output":".\/readpixels-gbm-1920x1080-crop1280x720.mjpg"
+      }
     }
   ]
 }
