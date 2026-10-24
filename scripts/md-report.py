@@ -114,8 +114,14 @@ def bar_path(x0, cy, w, h):
             f'H{x0:.2f}Z')
 
 
+def by_fps(results):
+    return sorted(results, key=lambda r: float(r.get('fps', 0)),
+                  reverse=True)
+
+
 def render_svg(results, theme,
                title='fps, CPU and GPU load per test'):
+    results = by_fps(results)
     fps_max = max((float(r.get('fps', 0)) for r in results),
                   default=0) or 1.0
     eff_max = max((e for e in map(efficiency, results) if e is not None),

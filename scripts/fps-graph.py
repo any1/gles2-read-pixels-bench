@@ -149,7 +149,8 @@ def efficiency(r):
 
 
 def render(doc, width, cell_h, theme):
-    results = doc.get('results', [])
+    results = sorted(doc.get('results', []),
+                     key=lambda r: float(r.get('fps', 0.0)), reverse=True)
     names = [r.get('test', '?') for r in results]
     fps = [float(r.get('fps', 0.0)) for r in results]
     effs = [efficiency(r) for r in results]
