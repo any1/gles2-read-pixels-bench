@@ -23,7 +23,7 @@
 - **warmup**: 10 frames
 - **format**: RGBA8888
 - **renderer**: V3D 4.2.14.0
-- **version**: OpenGL ES 3.1 Mesa 26.1.2-arch1.2
+- **version**: OpenGL ES 3.1 Mesa 26.2.5-arch1.1
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/rpi4-archlinux-dark.svg">
