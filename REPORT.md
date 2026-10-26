@@ -15,6 +15,21 @@
   <img alt="galago: bar chart of fps, CPU and GPU load per test" src="assets/galago-light.svg">
 </picture>
 
+## intel-b70
+
+- **crop**: 1280x720+320+180
+- **frame**: 1920x1080
+- **duration**: 1 s
+- **warmup**: 10 frames
+- **format**: RGBA8888
+- **renderer**: Mesa Intel(R) Graphics (BMG G31)
+- **version**: OpenGL ES 3.2 Mesa 26.2.3-arch1.1
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/intel-b70-dark.svg">
+  <img alt="intel-b70: bar chart of fps, CPU and GPU load per test" src="assets/intel-b70-light.svg">
+</picture>
+
 ## rpi4-archlinux
 
 - **crop**: 1280x720+320+180
